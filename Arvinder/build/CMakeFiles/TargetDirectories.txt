@@ -1,0 +1,3 @@
+/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/build/CMakeFiles/rebuild_cache.dir
+/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/build/CMakeFiles/edit_cache.dir
+/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/build/CMakeFiles/startProject.dir

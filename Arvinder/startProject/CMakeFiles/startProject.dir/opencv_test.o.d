@@ -354,4 +354,6 @@ CMakeFiles/startProject.dir/opencv_test.o: \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/stitching/detail/blenders.hpp \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video.hpp \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/tracking.hpp \
-  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/background_segm.hpp
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/background_segm.hpp \
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/highgui/highgui.hpp \
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/imgproc/imgproc.hpp

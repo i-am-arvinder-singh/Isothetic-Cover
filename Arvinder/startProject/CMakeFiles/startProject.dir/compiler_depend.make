@@ -356,7 +356,9 @@ CMakeFiles/startProject.dir/opencv_test.o: opencv_test.cpp \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/stitching/detail/blenders.hpp \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video.hpp \
   /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/tracking.hpp \
-  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/background_segm.hpp
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/video/background_segm.hpp \
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/highgui/highgui.hpp \
+  /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/imgproc/imgproc.hpp
 
 
 /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/stitching/detail/blenders.hpp:
@@ -442,6 +444,8 @@ CMakeFiles/startProject.dir/opencv_test.o: opencv_test.cpp \
 /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/core/types.hpp:
 
 /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/core/fast_math.hpp:
+
+/usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/highgui/highgui.hpp:
 
 /usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/core/saturate.hpp:
 
@@ -834,6 +838,8 @@ CMakeFiles/startProject.dir/opencv_test.o: opencv_test.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.0.sdk/usr/include/sys/_types/_clock_t.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.0.sdk/usr/include/sys/_types/_va_list.h:
+
+/usr/local/Cellar/opencv/4.5.3_2/include/opencv4/opencv2/imgproc/imgproc.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX12.0.sdk/usr/include/c++/v1/stdio.h:
 

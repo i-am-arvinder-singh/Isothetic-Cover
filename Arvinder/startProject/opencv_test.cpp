@@ -29,9 +29,14 @@ bool are_all_pixels_white(cv::Mat &image){
                 continue;
             cv::Scalar pixel = image.at<uchar>(j, i);
             // std::cout<<"---> "<<pixel.val[0]<<std::endl;
-            if(pixel.val[0]==255)
+            int intensity = pixel.val[0];
+            int val = (intensity==255?0:1);
+            if(val==1)
                 return false;
+            // if(pixel.val[0]==255)
+            //     return false;
         }
+        // std::cout<<std::endl;
     }
     return true;
 }
@@ -67,7 +72,7 @@ int main(){
 
     // show_image(binaryImage);
 
-    int GRID_SIZE = 50;
+    int GRID_SIZE = 5;
 
     int height = image.size().height;
     int width = image.size().width;
@@ -122,12 +127,12 @@ int main(){
             // cv::waitKey(0);
             // std::cout<<" ### "<<i<<" "<<j<<std::endl;
             if(are_all_pixels_white(block_matrix[i][j])){
-                is_pixel_present[i][j] = 1;
-            }
-            else{
                 is_pixel_present[i][j] = 0;
             }
-            std::cout<<is_pixel_present[i][j]<<"   ";
+            else{
+                is_pixel_present[i][j] = 1;
+            }
+            std::cout<<is_pixel_present[i][j];
         }
         std::cout<<std::endl;
     }

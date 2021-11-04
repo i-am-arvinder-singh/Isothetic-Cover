@@ -41,9 +41,22 @@ bool are_all_pixels_white(cv::Mat &image){
     return true;
 }
 
+/*
+
+    Inner and Outer Cover contruction algorithm:
+
+    https://github.com/rahul-chowdhury/image-processing-project-3
+
+*/
+
 int main(){
 
-    
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);std::
+    cout.tie(NULL);
+
+
+    auto start1 = std::chrono::high_resolution_clock::now();
 
     std::string test_pic = "./nike.png";
     std::string yinyangGrayPath = "./test_pic_gray.jpeg";
@@ -138,6 +151,12 @@ int main(){
     }
 
     std::cout<<"******************************"<<std::endl;
+
+
+	auto stop1 = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop1-start1);
+
+    std::cout << "Time: " << duration . count() / 1000 << std::endl;
 
     // for(int i=0;i<width;i+=g)
     //     for(int j=0;j<height;j+=g)

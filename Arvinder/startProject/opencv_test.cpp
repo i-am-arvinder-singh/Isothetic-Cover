@@ -1,3 +1,17 @@
+
+/*
+######################################################################################################################
+#                                                                                                                    #
+#                                                                                                                    #
+#                                                 Isothetic Cover Algorithm (TIPS)                                   #
+#                                                    Implemented By:                                                 #
+#                                                   1. Arvinder Singh (i-am-arvinder-singh)                          #
+#                                                   2. Dhruv Tyagi    (dhruv tyagi)                                  #
+#                                                                                                                    #
+#                                                                                                                    #
+######################################################################################################################
+*/
+
 #include <iostream>
 #include <string>
 
@@ -93,7 +107,7 @@ int main(){
 
     show_image(binaryImage_copy);
 
-    int GRID_SIZE = 5;
+    int GRID_SIZE = 10;
 
     int height = image.size().height;
     int width = image.size().width;

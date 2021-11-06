@@ -6,7 +6,7 @@
 #                                                 Isothetic Cover Algorithm (TIPS)                                   #
 #                                                    Implemented By:                                                 #
 #                                                   1. Arvinder Singh (i-am-arvinder-singh)                          #
-#                                                   2. Dhruv Tyagi    (dhruv tyagi)                                  #
+#                                                   2. Dhruv Tyagi    (dhruvtyagi)                                   #
 #                                                                                                                    #
 #                                                                                                                    #
 ######################################################################################################################
@@ -78,7 +78,7 @@ int main(){
 
     auto start1 = std::chrono::high_resolution_clock::now();
 
-    std::string test_pic = "./butterfly.jpeg";
+    std::string test_pic = "./test1.png";
     // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
 
     cv::Mat image = cv::imread(test_pic);
@@ -107,7 +107,7 @@ int main(){
 
     show_image(binaryImage_copy);
 
-    int GRID_SIZE = 10;
+    int GRID_SIZE = 20;
 
     int height = image.size().height;
     int width = image.size().width;
@@ -166,7 +166,7 @@ int main(){
             // cv::imshow(cv::format("grid"), block_matrix[i][j]);
             // cv::waitKey(0);
             // std::cout<<" ### "<<i<<" "<<j<<std::endl;
-            if(!are_all_pixels_white(block_matrix[i][j])){
+            if(are_all_pixels_white(block_matrix[i][j])){
                 is_pixel_present[i][j] = 0;
             }
             else{
@@ -178,11 +178,14 @@ int main(){
     }
 
     std::cout<<"******************************"<<std::endl;
+    cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
 
+
+    
 
     // ####################################### Actual Algo Implementation Starts Here ######################################### //
 
-
+    vector<vector<bool>> is_pixel_taken(height/GRID_SIZE+2,vector<bool>(width/GRID_SIZE+2,false));
 
 
     std::function<int(int,int)> find_type_C = [&](int h, int w){
@@ -191,15 +194,41 @@ int main(){
         int sum = 0;
         for(int i=-1;i<=0;i++){
             for(int j=-1;j<=0;j++){
-                sum+=is_pixel_present[i+block_i][j+block_j];
+                sum+=is_pixel_present[i+block_i][j+block_j];////////
             }
         }
         return sum;
     };
 
-    std::function<std::pair<int,int>()> find_start_point_OIC = [&](){
-        for(int h=GRID_SIZE;h<height-GRID_SIZE;h+=GRID_SIZE){
+    // cout<<"----------------------$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<endl;
+    for(int i=GRID_SIZE;i<height-GRID_SIZE;i+=GRID_SIZE){
+        for(int j=GRID_SIZE;j<width-GRID_SIZE;j+=GRID_SIZE){
+            // cout<<":::::::::::::::::::+=======>>> "<<i<<" "<<j<<endl;
+            cout<<find_type_C(i,j);
+        }
+        cout<<endl;
+    }
+    
+
+    std::function<std::pair<int,int>(int,int)> find_start_point_OIC = [&](int a, int b){
+        // cout<<"///////////////////+=======>>> "<<a<<" "<<b<<endl;
+        for(int w=b;w<width-GRID_SIZE;w+=GRID_SIZE){
+            // if(h==660){
+            //     cout<<":::::::::::::::::::+=======>>> "<<h<<" "<<w<<endl;
+            // }
+            if(is_pixel_taken[a/GRID_SIZE][w/GRID_SIZE])
+                continue;
+            auto type = find_type_C(a,w);
+            if(type==1)
+                return make_pair(a,w);
+        }
+        for(int h=a+GRID_SIZE;h<height-GRID_SIZE;h+=GRID_SIZE){
             for(int w=GRID_SIZE;w<width-GRID_SIZE;w+=GRID_SIZE){
+                // if(h==660){
+                //     cout<<":::::::::::::::::::+=======>>> "<<h<<" "<<w<<endl;
+                // }
+                if(is_pixel_taken[h/GRID_SIZE][w/GRID_SIZE])
+                    continue;
                 auto type = find_type_C(h,w);
                 if(type==1)
                     return make_pair(h,w);
@@ -299,265 +328,302 @@ int main(){
 
     };
 
-    auto start_pixel_position = find_start_point_OIC();
+    for(int a=GRID_SIZE;a<height;a+=GRID_SIZE){
 
-    cout<<"here--------"<<endl;
+        bool see = false;
+        for(int b=GRID_SIZE;b<width;b+=GRID_SIZE){
 
-    cout<<"----->  "<<start_pixel_position.first<<" "<<start_pixel_position.second<<endl;
+            auto start_pixel_position = find_start_point_OIC(a,b);
 
-    int orientation_of_1 = find_K_in_C1(start_pixel_position);
+            if(start_pixel_position.first==-1 and start_pixel_position.second==-1){
+                see = true;
+                break;
+            }
 
-    cout<<"here"<<endl;
+            cout<<"====> "<<start_pixel_position.first<<" "<<start_pixel_position.second<<endl;
 
-    vector<int> direction_vector;
-    vector<pair<int,int>> point_list;
 
-    pair<int,int> p_next;
+            int orientation_of_1 = find_K_in_C1(start_pixel_position);
 
-    if(orientation_of_1==1){//starting anti clockwise
+            vector<int> direction_vector;
+            vector<pair<int,int>> point_list;
 
-        p_next = {start_pixel_position.first-GRID_SIZE,start_pixel_position.second};
-        direction_vector.push_back(1);
+            pair<int,int> p_next;
 
-    }
-    else if(orientation_of_1==2){
-
-        p_next = {start_pixel_position.first,start_pixel_position.second+GRID_SIZE};
-        direction_vector.push_back(2);
-
-    }
-    else if(orientation_of_1==3){
-
-        p_next = {start_pixel_position.first+GRID_SIZE,start_pixel_position.second};
-        direction_vector.push_back(3);
-
-    }
-    else{
-
-        p_next = {start_pixel_position.first,start_pixel_position.second-GRID_SIZE};
-        direction_vector.push_back(4);
-
-    }
-
-    point_list.push_back(start_pixel_position);
-
-    while(p_next!=start_pixel_position){
-
-        auto p_cur = p_next;
-
-        point_list.push_back(p_cur);
-
-        int type = find_type_C(p_cur.first,p_cur.second);
-
-        assert(type!=0);
-
-        if(type==1){
-            int orientation_of_1 = find_K_in_C1(p_cur);
             if(orientation_of_1==1){//starting anti clockwise
 
-                p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                p_next = {start_pixel_position.first-GRID_SIZE,start_pixel_position.second};
                 direction_vector.push_back(1);
 
             }
             else if(orientation_of_1==2){
 
-                p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                p_next = {start_pixel_position.first,start_pixel_position.second+GRID_SIZE};
                 direction_vector.push_back(2);
 
             }
             else if(orientation_of_1==3){
 
-                p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                p_next = {start_pixel_position.first+GRID_SIZE,start_pixel_position.second};
                 direction_vector.push_back(3);
 
             }
             else{
 
-                p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                p_next = {start_pixel_position.first,start_pixel_position.second-GRID_SIZE};
                 direction_vector.push_back(4);
 
             }
-        }
-        else if(type==2){
-            int cur_i = p_cur.first;
-            int cur_j = p_cur.second;
-            cur_i/=GRID_SIZE;
-            cur_j/=GRID_SIZE;
-            if(is_pixel_present[cur_i][cur_j] and is_pixel_present[cur_i-1][cur_j-1]){
-                int prev_direction = direction_vector.back();
-                if(prev_direction==1){
-                    p_next = {p_cur.first,p_cur.second+GRID_SIZE};
-                    direction_vector.push_back(2);
-                }
-                else if(prev_direction==2){
-                    p_next = {p_cur.first-GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(1);
-                }
-                else if(prev_direction==3){
-                    p_next = {p_cur.first,p_cur.second-GRID_SIZE};
-                    direction_vector.push_back(4);
-                }
-                else if(prev_direction==4){
-                    p_next = {p_cur.first+GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(3);
-                }
-                else
-                    assert(false);
-            }
-            else if(is_pixel_present[cur_i-1][cur_j] and is_pixel_present[cur_i][cur_j-1]){
-                int prev_direction = direction_vector.back();
-                if(prev_direction==1){
-                    p_next = {p_cur.first,p_cur.second-GRID_SIZE};
-                    direction_vector.push_back(4);
-                }
-                else if(prev_direction==2){
-                    p_next = {p_cur.first+GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(3);
-                }
-                else if(prev_direction==3){
-                    p_next = {p_cur.first,p_cur.second+GRID_SIZE};
-                    direction_vector.push_back(2);
-                }
-                else if(prev_direction==4){
-                    p_next = {p_cur.first-GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(1);
-                }
-                else
-                    assert(false);
-            }
-            else{
 
-                int prev_dir = direction_vector.back();
-                if(prev_dir==1){
-                    p_next = {p_cur.first-GRID_SIZE,p_cur.second};
-                }
-                else if(prev_dir==2){
-                    p_next = {p_cur.first,p_cur.second+GRID_SIZE};
-                }
-                else if(prev_dir==3){
-                    p_next = {p_cur.first+GRID_SIZE,p_cur.second};
-                }
-                else if(prev_dir==4){
-                    p_next = {p_cur.first,p_cur.second-GRID_SIZE};
-                }
-                else{
-                    assert(false);
-                }
-                direction_vector.push_back(prev_dir);
+            point_list.push_back(start_pixel_position);
 
-            }
-        }
-        else if(type==3){   
-            
-            int orientation_of_3 = find_K_in_C3(p_cur);
-            int prev_direction = direction_vector.back();
-            if(orientation_of_3==1){//starting anti clockwise
-                assert(prev_direction!=1 and prev_direction!=4);
-                if(prev_direction==2){
+            while(p_next!=start_pixel_position){
 
-                    p_next = {p_cur.first-GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(1);
+                auto p_cur = p_next;
+
+                point_list.push_back(p_cur);
+
+                int type = find_type_C(p_cur.first,p_cur.second);
+
+                assert(type!=0);
+
+                if(type==1){
+                    int orientation_of_1 = find_K_in_C1(p_cur);
+                    if(orientation_of_1==1){//starting anti clockwise
+
+                        p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                        direction_vector.push_back(1);
+
+                    }
+                    else if(orientation_of_1==2){
+
+                        p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                        direction_vector.push_back(2);
+
+                    }
+                    else if(orientation_of_1==3){
+
+                        p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                        direction_vector.push_back(3);
+
+                    }
+                    else{
+
+                        p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                        direction_vector.push_back(4);
+
+                    }
+                }
+                else if(type==2){
+                    int cur_i = p_cur.first;
+                    int cur_j = p_cur.second;
+                    cur_i/=GRID_SIZE;
+                    cur_j/=GRID_SIZE;
+                    if(is_pixel_present[cur_i][cur_j] and is_pixel_present[cur_i-1][cur_j-1]){
+                        int prev_direction = direction_vector.back();
+                        if(prev_direction==1){
+                            p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                            direction_vector.push_back(2);
+                        }
+                        else if(prev_direction==2){
+                            p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(1);
+                        }
+                        else if(prev_direction==3){
+                            p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                            direction_vector.push_back(4);
+                        }
+                        else if(prev_direction==4){
+                            p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(3);
+                        }
+                        else
+                            assert(false);
+                    }
+                    else if(is_pixel_present[cur_i-1][cur_j] and is_pixel_present[cur_i][cur_j-1]){
+                        int prev_direction = direction_vector.back();
+                        if(prev_direction==1){
+                            p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                            direction_vector.push_back(4);
+                        }
+                        else if(prev_direction==2){
+                            p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(3);
+                        }
+                        else if(prev_direction==3){
+                            p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                            direction_vector.push_back(2);
+                        }
+                        else if(prev_direction==4){
+                            p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(1);
+                        }
+                        else
+                            assert(false);
+                    }
+                    else{
+
+                        int prev_dir = direction_vector.back();
+                        if(prev_dir==1){
+                            p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                        }
+                        else if(prev_dir==2){
+                            p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                        }
+                        else if(prev_dir==3){
+                            p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                        }
+                        else if(prev_dir==4){
+                            p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                        }
+                        else{
+                            assert(false);
+                        }
+                        direction_vector.push_back(prev_dir);
+
+                    }
+                }
+                else if(type==3){   
                     
+                    int orientation_of_3 = find_K_in_C3(p_cur);
+                    int prev_direction = direction_vector.back();
+                    if(orientation_of_3==1){//starting anti clockwise
+                        assert(prev_direction!=1 and prev_direction!=4);
+                        if(prev_direction==2){
+
+                            p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(1);
+                            
+                        }
+                        else if(prev_direction==3){
+
+                            p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                            direction_vector.push_back(4);
+
+                        }
+                        else{
+                            assert(false);
+                        }
+
+                    }
+                    else if(orientation_of_3==2){
+
+                        assert(prev_direction!=1 and prev_direction!=2);
+                        if(prev_direction==3){
+
+                            p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                            direction_vector.push_back(2);
+                            
+                        }
+                        else if(prev_direction==4){
+
+                            p_next = {p_cur.first-GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(1);
+
+                        }
+                        else{
+                            assert(false);
+                        }
+
+                    }
+                    else if(orientation_of_3==3){
+
+                        assert(prev_direction!=2 and prev_direction!=3);
+                        if(prev_direction==1){
+
+                            p_next = {p_cur.first,p_cur.second+GRID_SIZE};
+                            direction_vector.push_back(2);
+                            
+                        }
+                        else if(prev_direction==4){
+
+                            p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(3);
+
+                        }
+                        else{
+                            assert(false);
+                        }
+
+                    }
+                    else if(orientation_of_3==4){
+
+                        assert(prev_direction!=3 and prev_direction!=4);
+                        if(prev_direction==1){
+
+                            p_next = {p_cur.first,p_cur.second-GRID_SIZE};
+                            direction_vector.push_back(4);
+                            
+                        }
+                        else if(prev_direction==2){
+
+                            p_next = {p_cur.first+GRID_SIZE,p_cur.second};
+                            direction_vector.push_back(3);
+
+                        }
+                        else{
+                            assert(false);
+                        }
+
+                    }
+                    else{
+                        assert(false);
+                    }
+
                 }
-                else if(prev_direction==3){
-
-                    p_next = {p_cur.first,p_cur.second-GRID_SIZE};
-                    direction_vector.push_back(4);
-
+                else if(type==4){
+                    assert(false);
                 }
                 else{
                     assert(false);
                 }
 
             }
-            else if(orientation_of_3==2){
+            point_list.push_back(start_pixel_position);
+            // show_image(binaryImage_copy);
+            for(int i=1;i<point_list.size();i++){
+                int x1 = point_list[i].first;
+                int y1 = point_list[i].second;
 
-                assert(prev_direction!=1 and prev_direction!=2);
-                if(prev_direction==3){
-
-                    p_next = {p_cur.first,p_cur.second+GRID_SIZE};
-                    direction_vector.push_back(2);
-                    
-                }
-                else if(prev_direction==4){
-
-                    p_next = {p_cur.first-GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(1);
-
-                }
-                else{
-                    assert(false);
-                }
-
+                int x2 = point_list[i-1].first;
+                int y2 = point_list[i-1].second;
+                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
             }
-            else if(orientation_of_3==3){
 
-                assert(prev_direction!=2 and prev_direction!=3);
-                if(prev_direction==1){
-
-                    p_next = {p_cur.first,p_cur.second+GRID_SIZE};
-                    direction_vector.push_back(2);
-                    
-                }
-                else if(prev_direction==4){
-
-                    p_next = {p_cur.first+GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(3);
-
-                }
-                else{
-                    assert(false);
-                }
-
+            for(auto p:point_list){
+                is_pixel_taken[p.first/GRID_SIZE][p.second/GRID_SIZE] = true;
             }
-            else if(orientation_of_3==4){
 
-                assert(prev_direction!=3 and prev_direction!=4);
-                if(prev_direction==1){
+            cout<<"here"<<endl;
 
-                    p_next = {p_cur.first,p_cur.second-GRID_SIZE};
-                    direction_vector.push_back(4);
-                    
-                }
-                else if(prev_direction==2){
+            // show_image(back_to_rgb);
 
-                    p_next = {p_cur.first+GRID_SIZE,p_cur.second};
-                    direction_vector.push_back(3);
+            a = start_pixel_position.first;
+            b = start_pixel_position.second;
 
-                }
-                else{
-                    assert(false);
-                }
+            // b+=GRID_SIZE;
 
-            }
-            else{
-                assert(false);
-            }
+            // if(a>height)
+            //     break;
+            // if(b>width)
+            //     continue;
+
 
         }
-        else if(type==4){
-            assert(false);
-        }
-        else{
-            assert(false);
-        }
-
+        if(see)
+            break;
     }
-    point_list.push_back(start_pixel_position);
-    show_image(binaryImage_copy);
-    cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
-    for(int i=1;i<point_list.size();i++){
-        int x1 = point_list[i].first;
-        int y1 = point_list[i].second;
 
-        int x2 = point_list[i-1].first;
-        int y2 = point_list[i-1].second;
-        cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
-    }
+    
 
     show_image(back_to_rgb);
 
+    bool is_saved = cv::imwrite("./OIC_cover_butterfly.jpeg",back_to_rgb);
 
+    if(!is_saved){
+        cout<<"Save Unsuccessful."<<endl;
+        return 0;
+    }
 
 
 

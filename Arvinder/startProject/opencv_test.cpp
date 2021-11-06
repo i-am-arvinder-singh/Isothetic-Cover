@@ -23,6 +23,8 @@
 
 using namespace std;
 
+#define INNER 1
+
 
 
 void show_image(cv::Mat &image){
@@ -51,14 +53,26 @@ bool are_all_pixels_white(cv::Mat &image){
             // std::cout<<"---> "<<pixel.val[0]<<std::endl;
             int intensity = pixel.val[0];
             int val = (intensity==255?0:1);
-            if(val==1)
-                return false;
+
+            
+            if(INNER==1){
+                if(val==0)
+                    return true;
+            }
+            else{
+                if(val==1)
+                    return false;
+            }
             // if(pixel.val[0]==255)
             //     return false;
         }
         // std::cout<<std::endl;
     }
-    return true;
+    // return true;
+    if(INNER==1)
+        return false;
+    else
+        return true;
 }
 
 /*
@@ -105,9 +119,9 @@ int main(){
 
     cv::Mat binaryImage_copy = binaryImage.clone();
 
-    show_image(binaryImage_copy);
+    // show_image(binaryImage_copy);
 
-    int GRID_SIZE = 20;
+    int GRID_SIZE = 10;
 
     int height = image.size().height;
     int width = image.size().width;
@@ -155,7 +169,7 @@ int main(){
         }
     }
 
-    show_image(binaryImage);
+    // show_image(binaryImage);
 
     std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
 
@@ -587,7 +601,7 @@ int main(){
 
                 int x2 = point_list[i-1].first;
                 int y2 = point_list[i-1].second;
-                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
             }
 
             for(auto p:point_list){
@@ -616,7 +630,7 @@ int main(){
 
     
 
-    show_image(back_to_rgb);
+    // show_image(back_to_rgb);
 
     bool is_saved = cv::imwrite("./OIC_cover_butterfly.jpeg",back_to_rgb);
 

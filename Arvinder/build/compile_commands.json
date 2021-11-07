@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/build",
-  "command": "/Library/Developer/CommandLineTools/usr/bin/c++  -isystem /usr/local/Cellar/opencv/4.5.3_2/include/opencv4 -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.0.sdk -std=gnu++11 -o CMakeFiles/startProject.dir/opencv_test.o -c \"/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/startProject/opencv_test.cpp\"",
-  "file": "/Users/arvindersingh/Desktop/Projects/Final Year Project/Group Implementation Resource/Isothetic-Cover/Arvinder/startProject/opencv_test.cpp"
-}
-]

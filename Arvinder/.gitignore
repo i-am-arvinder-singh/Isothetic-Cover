@@ -6,3 +6,6 @@ startProject/CMakeLists.txt
 startProject/Makefile
 startProject/opencv_test
 startProject/startProject
+build
+.vscode
+thresholding

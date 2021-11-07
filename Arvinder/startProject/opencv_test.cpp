@@ -92,7 +92,7 @@ int main(){
 
     auto start1 = std::chrono::high_resolution_clock::now();
 
-    std::string test_pic = "./test1.png";
+    std::string test_pic = "./butterfly.jpeg";
     // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
 
     cv::Mat image = cv::imread(test_pic);
@@ -121,7 +121,11 @@ int main(){
 
     // show_image(binaryImage_copy);
 
-    int GRID_SIZE = 10;
+    // 5, 10, 15, 20
+
+    // 10 test images => binary
+
+    int GRID_SIZE = 6;
 
     int height = image.size().height;
     int width = image.size().width;
@@ -180,11 +184,23 @@ int main(){
             // cv::imshow(cv::format("grid"), block_matrix[i][j]);
             // cv::waitKey(0);
             // std::cout<<" ### "<<i<<" "<<j<<std::endl;
-            if(are_all_pixels_white(block_matrix[i][j])){
-                is_pixel_present[i][j] = 0;
+            if(INNER==1){
+                if(are_all_pixels_white(block_matrix[i][j])){
+                    is_pixel_present[i][j] = 0;
+                }
+                else{
+                    is_pixel_present[i][j] = 1;
+                }
+
             }
             else{
-                is_pixel_present[i][j] = 1;
+
+                if(are_all_pixels_white(block_matrix[i][j])){
+                    is_pixel_present[i][j] = 0;
+                }
+                else{
+                    is_pixel_present[i][j] = 1;
+                }
             }
             std::cout<<is_pixel_present[i][j];
         }

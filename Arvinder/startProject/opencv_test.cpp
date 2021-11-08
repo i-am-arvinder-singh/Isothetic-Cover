@@ -23,9 +23,9 @@
 
 using namespace std;
 
-#define INNER 1
-
-
+#define INNER 0
+#define GRID_SIZE 8
+#define IMPROVED 1
 
 void show_image(cv::Mat &image){
 
@@ -69,6 +69,48 @@ bool are_all_pixels_white(cv::Mat &image){
         // std::cout<<std::endl;
     }
     // return true;
+    if(INNER==1)
+        return false;
+    else
+        return true;
+}
+
+bool are_all_pixels_white_improved(cv::Mat &image, int start_i, int start_j){
+    // show_image(image);
+    // show_dims(image);
+    start_i*=GRID_SIZE;
+    start_j*=GRID_SIZE;
+    // cout<<"-----> "<<start_i<<" "<<start_j<<endl;
+    // cout<<"***********************************"<<endl;
+    // for(int i=start_i;i<start_i+GRID_SIZE and i<image.rows;i++){
+    //     for(int j=start_j;j<start_j+GRID_SIZE and i<image.cols;j++){
+    //         cv::Scalar pixel = image.at<uchar>(i, j);
+    //         // std::cout<<"---> "<<pixel.val[0]<<std::endl;
+    //         int intensity = pixel.val[0];
+    //         int val = (intensity==255?0:1);
+    //         cout<<val;
+    //     }
+    //     cout<<endl;
+    // }
+    // cout<<"***********************************"<<endl;
+    for(int i=start_i;i<start_i+GRID_SIZE and i<image.rows;i++){
+        for(int j=start_j;j<start_j+GRID_SIZE and i<image.cols;j++){
+            cv::Scalar pixel = image.at<uchar>(i, j);
+            // std::cout<<"---> "<<pixel.val[0]<<std::endl;
+            int intensity = pixel.val[0];
+            int val = (intensity==255?0:1);
+            if(INNER==1){
+                if(val==0)
+                    return true;
+            }
+            else{
+                if(val==1)
+                    return false;
+            }
+            // cout<<val;
+        }
+        // cout<<endl;
+    }
     if(INNER==1)
         return false;
     else
@@ -125,8 +167,6 @@ int main(){
 
     // 10 test images => binary
 
-    int GRID_SIZE = 6;
-
     int height = image.size().height;
     int width = image.size().width;
 
@@ -172,8 +212,8 @@ int main(){
             // cv::waitKey(0);
         }
     }
-
-    // show_image(binaryImage);
+    // cout<<"hreeeeeee"<<endl;
+    // show_image(binaryImage_copy);
 
     std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
 
@@ -185,7 +225,7 @@ int main(){
             // cv::waitKey(0);
             // std::cout<<" ### "<<i<<" "<<j<<std::endl;
             if(INNER==1){
-                if(are_all_pixels_white(block_matrix[i][j])){
+                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
                     is_pixel_present[i][j] = 0;
                 }
                 else{
@@ -195,7 +235,7 @@ int main(){
             }
             else{
 
-                if(are_all_pixels_white(block_matrix[i][j])){
+                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
                     is_pixel_present[i][j] = 0;
                 }
                 else{
@@ -231,13 +271,13 @@ int main(){
     };
 
     // cout<<"----------------------$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<endl;
-    for(int i=GRID_SIZE;i<height-GRID_SIZE;i+=GRID_SIZE){
-        for(int j=GRID_SIZE;j<width-GRID_SIZE;j+=GRID_SIZE){
-            // cout<<":::::::::::::::::::+=======>>> "<<i<<" "<<j<<endl;
-            cout<<find_type_C(i,j);
-        }
-        cout<<endl;
-    }
+    // for(int i=GRID_SIZE;i<height-GRID_SIZE;i+=GRID_SIZE){
+    //     for(int j=GRID_SIZE;j<width-GRID_SIZE;j+=GRID_SIZE){
+    //         // cout<<":::::::::::::::::::+=======>>> "<<i<<" "<<j<<endl;
+    //         cout<<find_type_C(i,j);
+    //     }
+    //     cout<<endl;
+    // }
     
 
     std::function<std::pair<int,int>(int,int)> find_start_point_OIC = [&](int a, int b){

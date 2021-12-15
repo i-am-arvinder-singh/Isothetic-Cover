@@ -4,9 +4,6 @@
 #                                                                                                                    #
 #                                                                                                                    #
 #                                                 Isothetic Cover Algorithm (TIPS)                                   #
-#                                                    Implemented By:                                                 #
-#                                                   1. Arvinder Singh (i-am-arvinder-singh)                          #
-#                                                   2. Dhruv Tyagi    (dhruvtyagi)                                   #
 #                                                                                                                    #
 #                                                                                                                    #
 ######################################################################################################################
@@ -24,8 +21,12 @@
 using namespace std;
 
 #define INNER 0
-#define GRID_SIZE 8
+#define GRID_SIZE 6
 #define IMPROVED 1
+#define LINE_GEN_STRICTNESS 1
+#define CNT_LINE_AFTER 1
+
+void line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
 
 void show_image(cv::Mat &image){
 
@@ -117,23 +118,22 @@ bool are_all_pixels_white_improved(cv::Mat &image, int start_i, int start_j){
         return true;
 }
 
-/*
-
-    Inner and Outer Cover contruction algorithm:
-
-    https://github.com/rahul-chowdhury/image-processing-project-3
-
-*/
-
 int main(){
 
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
     std::cout.tie(NULL);
 
+    srand(time(NULL));
+
 
     auto start1 = std::chrono::high_resolution_clock::now();
-
+    /*
+        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+                REMEMBER THAT TEST CASES MUST HAVE SOME THICK OUTER WHITE BOUNDARY
+                        OTHERWISE THIS IMPLEMENTATION WILL GIVE SEG FAULT
+        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    */
     std::string test_pic = "./butterfly.jpeg";
     // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
 
@@ -157,11 +157,15 @@ int main(){
 
     cv::split(image,channels);
 
-    cv::threshold(grayImage,binaryImage,40,255,cv::THRESH_BINARY);
+    cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
 
     cv::Mat binaryImage_copy = binaryImage.clone();
 
     // show_image(binaryImage_copy);
+
+    // cv::imwrite("./test5.jpeg",binaryImage_copy);
+
+
 
     // 5, 10, 15, 20
 
@@ -264,6 +268,8 @@ int main(){
         int sum = 0;
         for(int i=-1;i<=0;i++){
             for(int j=-1;j<=0;j++){
+                // if(i+block_i<0 || j+block_j<0)
+                //     continue;
                 sum+=is_pixel_present[i+block_i][j+block_j];////////
             }
         }
@@ -398,6 +404,8 @@ int main(){
 
     };
 
+    int number_of_covers = 0;
+
     for(int a=GRID_SIZE;a<height;a+=GRID_SIZE){
 
         bool see = false;
@@ -409,6 +417,8 @@ int main(){
                 see = true;
                 break;
             }
+
+            number_of_covers++;
 
             cout<<"====> "<<start_pixel_position.first<<" "<<start_pixel_position.second<<endl;
 
@@ -446,6 +456,8 @@ int main(){
             }
 
             point_list.push_back(start_pixel_position);
+            
+            // cout<<"^^^^^^^^^^^^ FOR DEBUG ^^^^^^^^^^^^^::::: "<<number_of_covers<<endl;
 
             while(p_next!=start_pixel_position){
 
@@ -453,7 +465,11 @@ int main(){
 
                 point_list.push_back(p_cur);
 
-                int type = find_type_C(p_cur.first,p_cur.second);
+                // cout<<"^^^^^^^^^^^^ FOR DEBUG ^^^^^^^^^^^^^ pre ::::: "<<number_of_covers<<" | POINT:::  "<<p_cur.first<<" "<<p_cur.second<<endl;
+
+                int type = find_type_C(p_cur.first,p_cur.second); /// BUG
+
+                // cout<<"^^^^^^^^^^^^ FOR DEBUG ^^^^^^^^^^^^^ post ::::: "<<number_of_covers<<endl;
 
                 assert(type!=0);
 
@@ -649,16 +665,55 @@ int main(){
                 }
 
             }
+            
+            /* 
+                Traversal directions:
+            */
+
+            cout<<"-------------------Traversal Direction Below Cover No."<<number_of_covers<<"------------------"<<endl;
+
+            for(auto ele:direction_vector){
+                cout<<ele;
+            }
+            cout<<endl;
+            cout<<direction_vector.size()<<endl;
+            // cout<<direction_vector[35]<<" "<<direction_vector[108]<<endl;
+            cout<<endl<<"-------------------------------------"<<endl;
+
             point_list.push_back(start_pixel_position);
             // show_image(binaryImage_copy);
+            bool once = true;
             for(int i=1;i<point_list.size();i++){
                 int x1 = point_list[i].first;
                 int y1 = point_list[i].second;
 
                 int x2 = point_list[i-1].first;
                 int y2 = point_list[i-1].second;
-                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
+                // if(once){
+                //     cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255));    
+                //     once = false;
+                // }
+                // else
+                // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
+                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
             }
+
+            // line_detection(back_to_rgb,point_list,direction_vector);
+
+            // for(int i=1;i<point_list.size();i++){
+            //     int x1 = point_list[i].first;
+            //     int y1 = point_list[i].second;
+
+            //     int x2 = point_list[i-1].first;
+            //     int y2 = point_list[i-1].second;
+            //     // if(once){
+            //     //     cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255));    
+            //     //     once = false;
+            //     // }
+            //     // else
+            //     cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+            //     break;
+            // }
 
             for(auto p:point_list){
                 is_pixel_taken[p.first/GRID_SIZE][p.second/GRID_SIZE] = true;
@@ -678,6 +733,7 @@ int main(){
             // if(b>width)
             //     continue;
 
+            // cout<<"^^^^^^^^^^^^ FOR DEBUG ^^^^^^^^^^^^^ "<<number_of_covers<<endl;
 
         }
         if(see)
@@ -688,7 +744,7 @@ int main(){
 
     // show_image(back_to_rgb);
 
-    bool is_saved = cv::imwrite("./OIC_cover_butterfly.jpeg",back_to_rgb);
+    bool is_saved = cv::imwrite("./IIC_cover_butterfly.jpeg",back_to_rgb);
 
     if(!is_saved){
         cout<<"Save Unsuccessful."<<endl;
@@ -723,6 +779,202 @@ int main(){
     // show_image(channels[2]);
 
     // show_dims(channels[0]);
+
+
+
+}
+
+
+
+void line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list, vector<int> &direction_vector){
+    // bool once = true;
+    // for(int i=1;i<cover_point_list.size();i++){
+    //     int x1 = cover_point_list[i].first;
+    //     int y1 = cover_point_list[i].second;
+
+    //     int x2 = cover_point_list[i-1].first;
+    //     int y2 = cover_point_list[i-1].second;
+    //     if(once){
+    //         cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255));    
+    //         once = false;
+    //     }
+    //     else
+    //         cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
+    // }
+
+
+
+
+    vector<int> sum[5];
+
+    int n = direction_vector.size();
+
+    for(int i=1;i<=4;i++){
+        sum[i] = vector<int>(n);
+    }
+
+    for(int i=0;i<n;i++){
+        for(int j=1;j<=4;j++){
+            sum[j][i] = (direction_vector[i]==j);
+        }
+    }
+    cout<<"Upto here?"<<endl;
+    
+    for(int j=1;j<=4;j++)
+        for(int i=1;i<n;i++)
+            sum[j][i]+=sum[j][i-1];
+
+    std::function<int(int,int,int)> sum_in_range = [&](int l, int r, int dir){
+        if(l>r)
+            return 0;
+        return sum[dir][r] - ((l-1>=0)?sum[dir][l-1]:0);
+    };
+
+    vector<int> ids[5];
+
+    for(int i=0;i<n;i++){
+        for(int j=1;j<=4;j++){
+            if(direction_vector[i]==j){
+                ids[j].push_back(i);
+            }
+        }
+    }
+
+    vector<pair<int,int>> line_list;
+
+    for(int j=1;j<=4;j++){
+        if(ids[j].size()<=1)
+            continue;// There is no line
+
+        // cout<<"(((((((((test))))))))"<<endl;
+        // cout<<j<<" || ";
+        // for(auto ele:ids[j])
+        //     cout<<ele<<" ";
+        // cout<<endl;
+        // cout<<"((((((((())))))))"<<endl;
+
+        int m = ids[j].size();
+
+
+        // int i = 0;
+        // while(i<m){
+        //     int prev = ids[j][i];
+        //     int k = i+1;
+        //     int left = ids[j][i];
+        //     while(k<m and ids[j][k]==prev+1){
+        //         prev = ids[j][k];
+        //         k++;
+        //     }
+        //     if(k==m){
+        //         line_list.push_back({left,ids[j][k-1]});
+        //         break;
+        //     }
+        //     else{
+        //         int next_alt = direction_vector[prev+1];
+
+        //     }
+        // }
+
+
+        //////////////////////////////////// PREV IMPLEMENTATION ////////////////////////////////////
+
+        for(int i=1;i<m;i++){
+            int cur_left = ids[j][i-1];
+            int cur_right = ids[j][i];
+            if(cur_right-cur_left==1)
+                continue;
+            else{
+                int lb = cur_left+1;
+                int rb = cur_right-1;
+                int dir_val_in_range = -1;
+                int no_of_dir_in_range = 0;
+                for(int k=1;k<=4;k++){
+                    if(k==j)
+                        continue;
+                    int see = sum_in_range(lb,rb,k);
+                    if(see==rb-lb+1){
+                        dir_val_in_range = k;
+                        no_of_dir_in_range = see;
+                        break;
+                    }
+                }
+
+                // cout<<"&&&&&& "<<dir_val_in_range<<" "<<no_of_dir_in_range<<endl;
+
+                if(dir_val_in_range!=-1){
+                    int w = i+1;
+                    int line_left = i-1;
+                    int cnt = 1;
+                    while(w<m){
+                        cur_left = ids[j][w-1];
+                        cur_right = ids[j][w];
+                        lb = cur_left+1;
+                        rb = cur_right-1;
+                        int see = sum_in_range(lb,rb,dir_val_in_range);
+                        cout<<"&&&&&&====> "<<j<<" || "<<see<<" "<<w<<" "<<no_of_dir_in_range<<endl;
+                        if(abs(see-no_of_dir_in_range)<=LINE_GEN_STRICTNESS and see==rb-lb+1){
+                            w++;
+                            cnt++;
+                        }
+                        else{
+                            // cout<<"$$$$$$$$$$$ "<<see<<" "<<no_of_dir_in_range<<" "<<dir_val_in_range<<endl;
+                            break;
+                        }
+                    }
+                    // cout<<"^^^^^^^^^^^^^ "<<i-1<<" "<<
+                    w--;
+                    i = w;
+                    if(cnt>CNT_LINE_AFTER){
+                        // cout<<"-------->>>> "<<j<<" == "<<ids[j][line_left]<<" "<<ids[j][w]<<endl;
+                        line_list.push_back({ids[j][line_left],ids[j][w]});
+                    }
+                }
+                else
+                    continue;
+
+            }
+        }
+
+        //////////////////////////////////// PREV IMPLEMENTATION ////////////////////////////////////
+        
+    }
+
+    sort(line_list.begin(),line_list.end());
+    vector<pair<int,int>> new_line_list;
+
+    if(!line_list.empty()){
+        int now_right = line_list[0].second;
+        new_line_list.push_back(line_list[0]);
+        for(int i=1;i<line_list.size();i++){
+            if(line_list[i].first>now_right){
+                new_line_list.push_back(line_list[i]);
+                now_right = new_line_list.back().second;
+            }
+        }
+    }
+
+    cout<<"@@@@@@@ ST LINES::::: "<<new_line_list.size()<<endl;
+
+    for(auto &[l,r]:new_line_list){
+        cout<<"####### ==> "<<l<<" "<<r<<endl;
+        /*
+            Generate some color:
+        */
+
+        int b_ = rand()%255;
+        int g_ = rand()%255;
+        int r_ = rand()%255;
+
+        for(int i=l;i<r;i++){
+            int x1 = cover_point_list[i+1].first;
+            int y1 = cover_point_list[i+1].second;
+
+            int x2 = cover_point_list[i].first;
+            int y2 = cover_point_list[i].second;
+            cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(b_, g_, r_)); 
+        }
+    }
+
 
 
 

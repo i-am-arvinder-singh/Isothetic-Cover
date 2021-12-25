@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <string>
+#include <regex>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
@@ -21,10 +22,11 @@
 using namespace std;
 
 #define INNER 0
-#define GRID_SIZE 6
+#define GRID_SIZE 18
 #define IMPROVED 1
 #define LINE_GEN_STRICTNESS 1
 #define CNT_LINE_AFTER 1
+#define ERROR_TOLERANCE 0.45// in percent
 
 void line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
 
@@ -95,7 +97,7 @@ bool are_all_pixels_white_improved(cv::Mat &image, int start_i, int start_j){
     // }
     // cout<<"***********************************"<<endl;
     for(int i=start_i;i<start_i+GRID_SIZE and i<image.rows;i++){
-        for(int j=start_j;j<start_j+GRID_SIZE and i<image.cols;j++){
+        for(int j=start_j;j<start_j+GRID_SIZE and j<image.cols;j++){
             cv::Scalar pixel = image.at<uchar>(i, j);
             // std::cout<<"---> "<<pixel.val[0]<<std::endl;
             int intensity = pixel.val[0];
@@ -118,6 +120,105 @@ bool are_all_pixels_white_improved(cv::Mat &image, int start_i, int start_j){
         return true;
 }
 
+
+/*
+    if true -> rectillinear (rectangular)
+    else    -> irregular
+*/
+
+bool analyse_shape(vector<int> &dir){
+    
+    
+    double ret_err = 100.0;
+
+    int n = dir.size();
+    int cnt = 0;
+    // cout<<"1111 HERERERERER "<<n<<endl;
+    for(int len3_ = 1;len3_<(n/2);len3_++){
+        cnt = 0;
+        int len3 = len3_;
+        int len2 = (n - (2*len3))/2;
+        int len1 = len3;
+        int len4 = len2;
+
+        int len2_ = len2;
+        int len1_ = len1;
+        int len4_ = len4;
+
+        double arr[5] = {};
+
+        int i = 0;
+        while(i<n and (len3>0)){
+            if(dir[i]!=3)
+                cnt++;
+            len3--;
+            i++;
+        }
+        arr[3] = ((double)cnt)/(len3_);
+        cnt=0;
+        while(i<n and (len2>0)){
+            if(dir[i]!=2)
+                cnt++;
+            len2--;
+            i++;
+        }
+        arr[2] = ((double)cnt)/(len2_);
+        cnt=0;
+        while(i<n and (len1>0)){
+            if(dir[i]!=1)
+                cnt++;
+            len1--;
+            i++;
+        }
+        arr[1] = ((double)cnt)/(len1_);
+        cnt=0;
+        while(i<n and (len4>0)){
+            if(dir[i]!=4)
+                cnt++;
+            len4--;
+            i++;
+        }
+        arr[4] = ((double)cnt)/(len4_);
+        double total = 0;
+        // for(int i=1;i<=4;i++)
+        //     total+=arr[i];
+
+        total+=(len1_*arr[1]);
+        total+=(len2_*arr[2]);
+        total+=(len3_*arr[3]);
+        total+=(len4_*arr[4]);
+
+        double err_now = total/(len1_+len2_+len3_+len4_);
+        // double err_now = ((double)cnt)/n;
+        ret_err = min(ret_err,err_now);
+    }
+    // cout<<"2222 HERERERERER"<<endl;
+    cout<<"RETT errr : "<<ret_err<<endl;
+    if(ret_err>ERROR_TOLERANCE and (n)>10)
+        return false;
+    return true;
+
+
+
+
+}
+
+
+// bool analyse_shape_regex(vector<int> &dir){
+//     string a = "";
+//     for(int i=0;i<dir.size();i++){
+//         a+=('0'+dir[i]);
+//     }
+//     regex r("(3+)(((2+)(3+)(4+))*(3*)((4+)(3+)(2+))*)(3*)(2+)(((1+)(2+)(3+))*(2*)((3+)(2+)(1+))*)(2*)(1+)(((4+)(1+)(2+))*(1*)((2+)(1+)(4+))*)(1*)(4+)(((3+)(4+)(1+))*(4*)((1+)(4+)(3+))*)(4*)");
+
+//     if(regex_match(a, r)){
+//         return true;
+//     }
+//     return false;
+
+
+// }
+
 int main(){
 
     std::ios_base::sync_with_stdio(false);
@@ -134,7 +235,9 @@ int main(){
                         OTHERWISE THIS IMPLEMENTATION WILL GIVE SEG FAULT
         $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     */
-    std::string test_pic = "./butterfly.jpeg";
+    string pic_name = "doc_img2";
+    string ext = "png";
+    std::string test_pic = "./"+ pic_name+"."+ext;
     // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
 
     cv::Mat image = cv::imread(test_pic);
@@ -405,6 +508,7 @@ int main(){
     };
 
     int number_of_covers = 0;
+    int graphic_area_cnt = 0;
 
     for(int a=GRID_SIZE;a<height;a+=GRID_SIZE){
 
@@ -677,8 +781,66 @@ int main(){
             }
             cout<<endl;
             cout<<direction_vector.size()<<endl;
+            // Analyze shape
+            cout<<"******===>> "<<"here"<<endl;
+            bool is_rectillinear = analyse_shape(direction_vector);
+            // bool is_rectillinear = analyse_shape_regex(direction_vector);
+            cout<<"******===>> "<<"here"<<endl;
             // cout<<direction_vector[35]<<" "<<direction_vector[108]<<endl;
             cout<<endl<<"-------------------------------------"<<endl;
+
+            if(!is_rectillinear){
+
+                graphic_area_cnt++;
+
+                cv::Mat graphic_img_ = binaryImage_copy.clone();
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = 255;
+                        pixel.val[1] = 255;
+                        pixel.val[2] = 255;
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+                // show_image(graphic_img_);
+                
+                int m = point_list.size();
+
+                cv::Point points[1][m];
+
+                for(int i=0;i<m;i++){
+                    points[0][i] = cv::Point(point_list[i].second,point_list[i].first);
+                }
+
+                const cv::Point* ppt[1] = {points[0]};
+                int npt[] = {m};
+
+                cv::fillPoly(graphic_img_,ppt,npt,1,cv::Scalar( 1, 1, 1 ),cv::LINE_8 );
+
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        cv::Vec3b pixel_2 = binaryImage_copy.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = (pixel.val[0]==255?255:pixel_2.val[0]);
+                        pixel.val[1] = (pixel.val[1]==255?255:pixel_2.val[1]);
+                        pixel.val[2] = (pixel.val[2]==255?255:pixel_2.val[2]);
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+
+                string out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
+                bool is_saved = cv::imwrite(out_name,graphic_img_);
+
+                if(!is_saved){
+                    cout<<"Save Unsuccessful for graphic extraction."<<endl;
+                    return 0;
+                }
+
+                // show_image(graphic_img_);
+
+
+            }
 
             point_list.push_back(start_pixel_position);
             // show_image(binaryImage_copy);
@@ -695,8 +857,13 @@ int main(){
                 // }
                 // else
                 // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
-                cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
+                if(is_rectillinear)
+                    cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                else
+                    cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
             }
+            
+            
 
             // line_detection(back_to_rgb,point_list,direction_vector);
 
@@ -743,8 +910,8 @@ int main(){
     
 
     // show_image(back_to_rgb);
-
-    bool is_saved = cv::imwrite("./IIC_cover_butterfly.jpeg",back_to_rgb);
+    string out_name = "./" + pic_name + "_output"+"."+ext;
+    bool is_saved = cv::imwrite(out_name,back_to_rgb);
 
     if(!is_saved){
         cout<<"Save Unsuccessful."<<endl;

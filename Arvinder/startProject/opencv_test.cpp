@@ -22,11 +22,13 @@
 using namespace std;
 
 #define INNER 0
-#define GRID_SIZE 34
+#define GRID_SIZE 23
 #define IMPROVED 1
 #define LINE_GEN_STRICTNESS 1
 #define CNT_LINE_AFTER 1
 #define ERROR_TOLERANCE 110// in percent
+#define THRESHOLD 0.7
+#define PRE_PROCESS 0
 
 void line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
 
@@ -199,222 +201,61 @@ bool analyse_shape(vector<int> &dir){
     return true;
 
 
+}
 
+
+bool analyse_shape_improved(vector<pair<int,int>> &cover_points){
+    
+    double area = 0.0;
+    
+    int n = cover_points.size();
+
+    int j = n - 1;
+    double min_x = INT_MAX, min_y = INT_MAX;
+    double max_x = INT_MIN, max_y = INT_MIN;
+
+    for (int i = 0; i < n; i++){
+        min_x = min(min_x,(double)cover_points[i].first);
+        min_y = min(min_y,(double)cover_points[i].second);
+        max_x = max(max_x,(double)cover_points[i].first);
+        max_y = max(max_y,(double)cover_points[i].second);
+        area += (cover_points[j].first + cover_points[i].first) * (cover_points[j].second - cover_points[i].second);
+        j = i;  
+    }
+
+
+
+    double denom = 2.0*(max_x-min_x)*(max_y-min_y);
+
+
+    cout<<"########################"<<endl;
+    cout<<min_x<<" "<<min_y<<" "<<max_x<<" "<<max_y<<endl;
+    cout<<area<<" "<<denom<<endl;
+    cout<<"########################"<<endl;
+
+    double ratio = abs(area)/denom;
+
+    cout<<"RETT errr : "<<ratio<<endl;
+    
+    if(ratio>THRESHOLD)
+        return true;
+    return false;
 
 }
 
 
-// bool analyse_shape_regex(vector<int> &dir){
-//     string a = "";
-//     for(int i=0;i<dir.size();i++){
-//         a+=('0'+dir[i]);
-//     }
-//     regex r("(3+)(((2+)(3+)(4+))*(3*)((4+)(3+)(2+))*)(3*)(2+)(((1+)(2+)(3+))*(2*)((3+)(2+)(1+))*)(2*)(1+)(((4+)(1+)(2+))*(1*)((2+)(1+)(4+))*)(1*)(4+)(((3+)(4+)(1+))*(4*)((1+)(4+)(3+))*)(4*)");
 
-//     if(regex_match(a, r)){
-//         return true;
-//     }
-//     return false;
+vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
+    int height, 
+    int width, 
+    vector<vector<bool>> &is_pixel_present, 
+    cv::Mat &binaryImage_copy_copy,
+    cv::Mat &binaryImage_copy,
+    string &pic_name,
+    string &ext,
+    cv::Mat &back_to_rgb_copy){
 
-
-// }
-
-int main(){
-
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(NULL);
-    std::cout.tie(NULL);
-
-    srand(time(NULL));
-
-
-    auto start1 = std::chrono::high_resolution_clock::now();
-    /*
-        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-                REMEMBER THAT TEST CASES MUST HAVE SOME THICK OUTER WHITE BOUNDARY
-                        OTHERWISE THIS IMPLEMENTATION WILL GIVE SEG FAULT
-        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    */
-    string pic_name = "0008";
-    string ext = "jpg";
-    std::string test_pic = "./"+ pic_name+"."+ext;
-    // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
-
-    cv::Mat image = cv::imread(test_pic);
-    cv::Mat grayImage, binaryImage;
-
-    int border = 220;
-
-    // cv::Mat temp = cv::Mat::zeros(cv::Size(image.cols+border,image.rows+border), CV_64FC1);
-    cv::Mat temp(image.rows+border,image.cols+border, CV_8UC3, cv::Scalar(255,255,255));
-    int new_dim_cols = image.cols+border;
-    int new_dim_rows = image.rows+border;
-
-    for(int i=0;i<temp.rows;i++){
-        for(int j=0;j<temp.cols;j++){
-            cv::Vec3b pixel = temp.at<cv::Vec3b>(cv::Point(j,i));
-            pixel.val[0] = 255;
-            pixel.val[1] = 255;
-            pixel.val[2] = 255;
-            temp.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
-        }
-    }
-
-    // show_image(temp);
-
-    int shift = (border - 20)/2;
-
-    for(int i=0;i<image.rows;i++){
-        for(int j=0;j<image.cols;j++){
-            cv::Vec3b pixel = image.at<cv::Vec3b>(cv::Point(j,i));
-            temp.at<cv::Vec3b>(cv::Point(j+shift,i+shift)) = pixel;
-        }
-    }
-
-
-
-    // show_image(temp);
-
-    image = temp;
-
-    // show_image(image);
-
-
-    cv::cvtColor(image,grayImage,cv::COLOR_BGR2GRAY);
-
-    if(!image.data) {
-        std::cout<< "No image"<<std::endl;
-        return 0;
-    }
-
-    // show_image(image);
-
-    // show_image(grayImage);
-
-    // show_image(image);
-
-    cv::Mat channels[3];
-
-    cv::split(image,channels);
-
-    cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
-
-    cv::Mat binaryImage_copy = binaryImage.clone();
-    cv::Mat binaryImage_copy_copy = binaryImage_copy.clone();
-
-    // show_image(binaryImage_copy);
-
-    cv::Mat dst;
-    cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
-    cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
-    // cv::morphologyEx(binaryImage_copy,dst,cv::MORPH_CLOSE,elementKernel);
-    int times = 3;
-    cv::erode(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
-    while(times--){
-        cv::dilate(binaryImage_copy,dst,elementKernel1,cv::Point(-1,-1),1);
-        cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
-        binaryImage_copy = dst.clone();
-        binaryImage = dst.clone();
-    }
-
-    // cv::dilate(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
-    // cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
-    show_image(dst);
-
-    // cv::imwrite("./test5.jpeg",binaryImage_copy);
-
-
-
-    // 5, 10, 15, 20
-
-    // 10 test images => binary
-
-    int height = image.size().height;
-    int width = image.size().width;
-
-    cv::Mat back_to_rgb;
-
-    // cv::cvtColor(binaryImage,back_to_rgb,cv::COLOR_GRAY2BGR);
-    // int g_ = GRID_SIZE;
-    // for (int i = 0; i<height; i += g_){
-    //     cv::line(back_to_rgb, cv::Point(0, i), cv::Point(width, i), cv::Scalar(255, 0, 0));
-    //     // g_++;
-    // }
-    // g_ = GRID_SIZE;
-    // for (int i = 0; i<width; i += g_){
-    //     cv::line(back_to_rgb, cv::Point(i, 0), cv::Point(i, height), cv::Scalar(255, 0, 0));
-    //     // g_++;
-    // }
-
-    // show_image(back_to_rgb);
-
-
-    std::vector<cv::Rect> mCells;
-
-    int BLOCK_HEIGHT = (height  )/GRID_SIZE;
-    int BLOCK_WIDTH = (width )/GRID_SIZE;
-
-    std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
-    std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
-
-    std::vector<std::vector<cv::Mat>> block_matrix(BLOCK_HEIGHT,std::vector<cv::Mat>(BLOCK_WIDTH));
-
-    for (int y = 0; y < height - GRID_SIZE; y += GRID_SIZE) {
-        for (int x = 0; x < width - GRID_SIZE; x += GRID_SIZE) {
-            int k = x*y + x;
-            cv::Rect grid_rect(x, y, GRID_SIZE, GRID_SIZE);
-            // std::cout << grid_rect<< std::endl;
-            mCells.push_back(grid_rect);
-            rectangle(binaryImage, grid_rect, cv::Scalar(0, 255, 0), 1);
-            int i_ = y/GRID_SIZE;
-            int j_ = x/GRID_SIZE;
-            block_matrix[i_][j_] = binaryImage(grid_rect);
-            // cv::imshow("src", binaryImage);
-            // cv::imshow(cv::format("grid%d",k), binaryImage(grid_rect));
-            // cv::waitKey(0);
-        }
-    }
-    // cout<<"hreeeeeee"<<endl;
-    // show_image(binaryImage_copy);
-
-    std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
-
-    std::cout<<"******************************"<<std::endl;
-
-    for(int i=0;i<BLOCK_HEIGHT;i++){
-        for(int j=0;j<BLOCK_WIDTH;j++){
-            // cv::imshow(cv::format("grid"), block_matrix[i][j]);
-            // cv::waitKey(0);
-            // std::cout<<" ### "<<i<<" "<<j<<std::endl;
-            if(INNER==1){
-                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
-                    is_pixel_present[i][j] = 0;
-                }
-                else{
-                    is_pixel_present[i][j] = 1;
-                }
-
-            }
-            else{
-
-                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
-                    is_pixel_present[i][j] = 0;
-                }
-                else{
-                    is_pixel_present[i][j] = 1;
-                }
-            }
-            std::cout<<is_pixel_present[i][j];
-        }
-        std::cout<<std::endl;
-    }
-
-    std::cout<<"******************************"<<std::endl;
-    cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
-    cv::Mat back_to_rgb_copy;
-    cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
-
-    
+    vector<pair<vector<pair<int,int>>,vector<int>>> return_value;
 
     // ####################################### Actual Algo Implementation Starts Here ######################################### //
 
@@ -840,152 +681,18 @@ int main(){
             cout<<direction_vector.size()<<endl;
             // Analyze shape
             cout<<"******===>> "<<"here"<<endl;
-            bool is_rectillinear = analyse_shape(direction_vector);
             // bool is_rectillinear = analyse_shape_regex(direction_vector);
             cout<<"******===>> "<<"here"<<endl;
             // cout<<direction_vector[35]<<" "<<direction_vector[108]<<endl;
             cout<<endl<<"-------------------------------------"<<endl;
 
-            if(!is_rectillinear){
-
-                graphic_area_cnt++;
-
-                cv::Mat graphic_img_ = binaryImage_copy_copy.clone();
-                for(int i=0;i<graphic_img_.rows;i++){
-                    for(int j=0;j<graphic_img_.cols;j++){
-                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
-                        pixel.val[0] = 255;
-                        pixel.val[1] = 255;
-                        pixel.val[2] = 255;
-                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
-                    }
-                }
-                // show_image(graphic_img_);
-                
-                int m = point_list.size();
-
-                cv::Point points[1][m];
-
-                for(int i=0;i<m;i++){
-                    points[0][i] = cv::Point(point_list[i].second,point_list[i].first);
-                }
-
-                const cv::Point* ppt[1] = {points[0]};
-                int npt[] = {m};
-
-                cv::fillPoly(graphic_img_,ppt,npt,1,cv::Scalar( 1, 1, 1 ),cv::LINE_8 );
-
-                int cnt_pixs = 0;
-
-                for(int i=0;i<graphic_img_.rows;i++){
-                    for(int j=0;j<graphic_img_.cols;j++){
-                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
-                        cv::Vec3b pixel_2 = binaryImage_copy_copy.at<cv::Vec3b>(cv::Point(j,i));
-                        pixel.val[0] = (pixel.val[0]==255?255:pixel_2.val[0]);
-                        pixel.val[1] = (pixel.val[1]==255?255:pixel_2.val[1]);
-                        pixel.val[2] = (pixel.val[2]==255?255:pixel_2.val[2]);
-                        if(pixel.val[0]!=255 || pixel.val[1]!=255 || pixel.val[2]!=255)
-                            cnt_pixs++;
-                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
-                    }
-                }
-
-                if(cnt_pixs>50){
-
-                    string out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
-                    bool is_saved = cv::imwrite(out_name,graphic_img_);
-
-                    if(!is_saved){
-                        cout<<"Save Unsuccessful for graphic extraction."<<endl;
-                        return 0;
-                    }
-
-                }
-
-                // show_image(graphic_img_);
-
-
-            }
-            else{ // Not rectillinear
-
-                possible_textual_area_cnt++;
-
-                cv::Mat graphic_img_ = binaryImage_copy_copy.clone();
-                for(int i=0;i<graphic_img_.rows;i++){
-                    for(int j=0;j<graphic_img_.cols;j++){
-                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
-                        pixel.val[0] = 255;
-                        pixel.val[1] = 255;
-                        pixel.val[2] = 255;
-                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
-                    }
-                }
-                // show_image(graphic_img_);
-                
-                int m = point_list.size();
-
-                cv::Point points[1][m];
-
-                for(int i=0;i<m;i++){
-                    points[0][i] = cv::Point(point_list[i].second,point_list[i].first);
-                }
-
-                const cv::Point* ppt[1] = {points[0]};
-                int npt[] = {m};
-
-                cv::fillPoly(graphic_img_,ppt,npt,1,cv::Scalar( 1, 1, 1 ),cv::LINE_8 );
-
-                int cnt_pixs = 0;
-
-                for(int i=0;i<graphic_img_.rows;i++){
-                    for(int j=0;j<graphic_img_.cols;j++){
-                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
-                        cv::Vec3b pixel_2 = binaryImage_copy_copy.at<cv::Vec3b>(cv::Point(j,i));
-                        pixel.val[0] = (pixel.val[0]==255?255:pixel_2.val[0]);
-                        pixel.val[1] = (pixel.val[1]==255?255:pixel_2.val[1]);
-                        pixel.val[2] = (pixel.val[2]==255?255:pixel_2.val[2]);
-                        if(pixel.val[0]!=255 || pixel.val[1]!=255 || pixel.val[2]!=255)
-                            cnt_pixs++;
-                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
-                    }
-                }
-
-                if(cnt_pixs>50){
-
-                    string out_name = "./" + pic_name + "_output_textual_element_"+to_string(possible_textual_area_cnt)+"."+ext;
-                    bool is_saved = cv::imwrite(out_name,graphic_img_);
-
-                    if(!is_saved){
-                        cout<<"Save Unsuccessful for text extraction."<<endl;
-                        return 0;
-                    }
-
-                }
-
-            }
+            return_value.push_back({point_list,direction_vector});
 
 
 
-            point_list.push_back(start_pixel_position);
+            // point_list.push_back(start_pixel_position);
             // show_image(binaryImage_copy);
-            bool once = true;
-            for(int i=1;i<point_list.size();i++){
-                int x1 = point_list[i].first;
-                int y1 = point_list[i].second;
-
-                int x2 = point_list[i-1].first;
-                int y2 = point_list[i-1].second;
-                // if(once){
-                //     cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255));    
-                //     once = false;
-                // }
-                // else
-                // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
-                if(is_rectillinear)
-                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
-                else
-                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
-            }
+            
             
             
 
@@ -1031,27 +738,396 @@ int main(){
             break;
     }
 
-    
 
-    // show_image(back_to_rgb);
-    string out_name = "./" + pic_name + "_output"+"."+ext;
-    bool is_saved = cv::imwrite(out_name,back_to_rgb_copy);
-
-    if(!is_saved){
-        cout<<"Save Unsuccessful."<<endl;
-        return 0;
-    }
-
-
-
-
-
-
-
-
+    return return_value;
 
 
     // ####################################### Actual Algo Implementation Ends Here ######################################### //
+
+}
+
+int main(){
+
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+    std::cout.tie(NULL);
+
+    srand(time(NULL));
+
+
+    auto start1 = std::chrono::high_resolution_clock::now();
+
+
+
+    /*
+        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+                REMEMBER THAT TEST CASES MUST HAVE SOME THICK OUTER WHITE BOUNDARY
+                        OTHERWISE THIS IMPLEMENTATION WILL GIVE SEG FAULT
+        $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    */
+
+   vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
+   vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
+
+   assert(pic_names.size()==exts.size());
+
+   for(int i=0;i<pic_names.size();i++){
+
+       cout<<"NOW PROCESSING=====> "<<i<<endl;
+
+        string pic_name = pic_names[i];
+        string ext = exts[i];
+        std::string test_pic = "./"+ pic_name+"."+ext;
+        // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
+
+        cv::Mat image = cv::imread(test_pic);
+        cv::Mat grayImage, binaryImage;
+
+        int border = 220;
+
+        // cv::Mat temp = cv::Mat::zeros(cv::Size(image.cols+border,image.rows+border), CV_64FC1);
+        cv::Mat temp(image.rows+border,image.cols+border, CV_8UC3, cv::Scalar(255,255,255));
+        int new_dim_cols = image.cols+border;
+        int new_dim_rows = image.rows+border;
+
+        for(int i=0;i<temp.rows;i++){
+            for(int j=0;j<temp.cols;j++){
+                cv::Vec3b pixel = temp.at<cv::Vec3b>(cv::Point(j,i));
+                pixel.val[0] = 255;
+                pixel.val[1] = 255;
+                pixel.val[2] = 255;
+                temp.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+            }
+        }
+
+        // show_image(temp);
+
+        int shift = (border - 20)/2;
+
+        for(int i=0;i<image.rows;i++){
+            for(int j=0;j<image.cols;j++){
+                cv::Vec3b pixel = image.at<cv::Vec3b>(cv::Point(j,i));
+                temp.at<cv::Vec3b>(cv::Point(j+shift,i+shift)) = pixel;
+            }
+        }
+
+
+
+        // show_image(temp);
+
+        image = temp;
+
+        // show_image(image);
+
+
+        cv::cvtColor(image,grayImage,cv::COLOR_BGR2GRAY);
+
+        if(!image.data) {
+            std::cout<< "No image"<<std::endl;
+            return 0;
+        }
+
+        // show_image(image);
+
+        // show_image(grayImage);
+
+        // show_image(image);
+
+        cv::Mat channels[3];
+
+        cv::split(image,channels);
+
+        cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
+
+        cv::Mat binaryImage_copy = binaryImage.clone();
+        cv::Mat binaryImage_copy_copy = binaryImage_copy.clone();
+
+        // show_image(binaryImage_copy);
+
+
+        if(PRE_PROCESS==1){
+            cv::Mat dst;
+            cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
+            cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
+            // cv::morphologyEx(binaryImage_copy,dst,cv::MORPH_CLOSE,elementKernel);
+            int times = 3;
+            // cv::erode(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
+            while(times--){
+                cv::dilate(binaryImage_copy,dst,elementKernel1,cv::Point(-1,-1),1);
+                cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
+                binaryImage_copy = dst.clone();
+                binaryImage = dst.clone();
+            }
+        }
+
+        // cv::dilate(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
+        // cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
+        // show_image(dst);
+
+        // cv::imwrite("./test5.jpeg",binaryImage_copy);
+
+
+
+        // 5, 10, 15, 20
+
+        // 10 test images => binary
+
+        int height = image.size().height;
+        int width = image.size().width;
+
+        cv::Mat back_to_rgb;
+
+        // cv::cvtColor(binaryImage,back_to_rgb,cv::COLOR_GRAY2BGR);
+        // int g_ = GRID_SIZE;
+        // for (int i = 0; i<height; i += g_){
+        //     cv::line(back_to_rgb, cv::Point(0, i), cv::Point(width, i), cv::Scalar(255, 0, 0));
+        //     // g_++;
+        // }
+        // g_ = GRID_SIZE;
+        // for (int i = 0; i<width; i += g_){
+        //     cv::line(back_to_rgb, cv::Point(i, 0), cv::Point(i, height), cv::Scalar(255, 0, 0));
+        //     // g_++;
+        // }
+
+        // show_image(back_to_rgb);
+
+
+        std::vector<cv::Rect> mCells;
+
+        int BLOCK_HEIGHT = (height  )/GRID_SIZE;
+        int BLOCK_WIDTH = (width )/GRID_SIZE;
+
+        std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
+        std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
+
+        std::vector<std::vector<cv::Mat>> block_matrix(BLOCK_HEIGHT,std::vector<cv::Mat>(BLOCK_WIDTH));
+
+        for (int y = 0; y < height - GRID_SIZE; y += GRID_SIZE) {
+            for (int x = 0; x < width - GRID_SIZE; x += GRID_SIZE) {
+                int k = x*y + x;
+                cv::Rect grid_rect(x, y, GRID_SIZE, GRID_SIZE);
+                // std::cout << grid_rect<< std::endl;
+                mCells.push_back(grid_rect);
+                rectangle(binaryImage, grid_rect, cv::Scalar(0, 255, 0), 1);
+                int i_ = y/GRID_SIZE;
+                int j_ = x/GRID_SIZE;
+                block_matrix[i_][j_] = binaryImage(grid_rect);
+                // cv::imshow("src", binaryImage);
+                // cv::imshow(cv::format("grid%d",k), binaryImage(grid_rect));
+                // cv::waitKey(0);
+            }
+        }
+        // cout<<"hreeeeeee"<<endl;
+        // show_image(binaryImage_copy);
+
+        std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
+
+        std::cout<<"******************************"<<std::endl;
+
+        for(int i=0;i<BLOCK_HEIGHT;i++){
+            for(int j=0;j<BLOCK_WIDTH;j++){
+                // cv::imshow(cv::format("grid"), block_matrix[i][j]);
+                // cv::waitKey(0);
+                // std::cout<<" ### "<<i<<" "<<j<<std::endl;
+                if(INNER==1){
+                    if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
+                        is_pixel_present[i][j] = 0;
+                    }
+                    else{
+                        is_pixel_present[i][j] = 1;
+                    }
+
+                }
+                else{
+
+                    if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
+                        is_pixel_present[i][j] = 0;
+                    }
+                    else{
+                        is_pixel_present[i][j] = 1;
+                    }
+                }
+                std::cout<<is_pixel_present[i][j];
+            }
+            std::cout<<std::endl;
+        }
+
+        std::cout<<"******************************"<<std::endl;
+        cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
+        cv::Mat back_to_rgb_copy;
+        cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
+
+
+        //////// COVER FINDING AND ANALYSIS /////////
+
+        auto return_vec = cover_gen(height,width,is_pixel_present,binaryImage_copy_copy,binaryImage_copy,pic_name,ext,back_to_rgb_copy);
+
+
+            
+        int graphic_area_cnt = 0;
+        int possible_textual_area_cnt = 0;
+
+        for(auto &ele :return_vec){
+
+            bool is_rectillinear = analyse_shape_improved(ele.first);
+
+            if(!is_rectillinear){
+
+                cv::Mat graphic_img_ = binaryImage_copy_copy.clone();
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = 255;
+                        pixel.val[1] = 255;
+                        pixel.val[2] = 255;
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+                // show_image(graphic_img_);
+                
+                int m = ele.first.size();
+
+                cv::Point points[1][m];
+
+                for(int i=0;i<m;i++){
+                    points[0][i] = cv::Point(ele.first[i].second,ele.first[i].first);
+                }
+
+                const cv::Point* ppt[1] = {points[0]};
+                int npt[] = {m};
+
+                cv::fillPoly(graphic_img_,ppt,npt,1,cv::Scalar( 1, 1, 1 ),cv::LINE_8 );
+
+                int cnt_pixs = 0;
+
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        cv::Vec3b pixel_2 = binaryImage_copy_copy.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = (pixel.val[0]==255?255:pixel_2.val[0]);
+                        pixel.val[1] = (pixel.val[1]==255?255:pixel_2.val[1]);
+                        pixel.val[2] = (pixel.val[2]==255?255:pixel_2.val[2]);
+                        if(pixel.val[0]!=255 || pixel.val[1]!=255 || pixel.val[2]!=255)
+                            cnt_pixs++;
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+
+                if(cnt_pixs>50){
+
+                    graphic_area_cnt++;
+
+                    string out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
+
+                    // show_image(graphic_img_);
+                    bool is_saved = cv::imwrite(out_name,graphic_img_);
+
+                    if(!is_saved){
+                        cout<<"Save Unsuccessful for graphic extraction."<<endl;
+                        exit(0);
+                    }
+
+
+                }
+
+
+            }
+            else{ // Not rectillinear
+
+                cv::Mat graphic_img_ = binaryImage_copy_copy.clone();
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = 255;
+                        pixel.val[1] = 255;
+                        pixel.val[2] = 255;
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+                // show_image(graphic_img_);
+                
+                int m = ele.first.size();
+
+                cv::Point points[1][m];
+
+                for(int i=0;i<m;i++){
+                    points[0][i] = cv::Point(ele.first[i].second,ele.first[i].first);
+                }
+
+                const cv::Point* ppt[1] = {points[0]};
+                int npt[] = {m};
+
+                cv::fillPoly(graphic_img_,ppt,npt,1,cv::Scalar( 1, 1, 1 ),cv::LINE_8 );
+
+                int cnt_pixs = 0;
+
+                for(int i=0;i<graphic_img_.rows;i++){
+                    for(int j=0;j<graphic_img_.cols;j++){
+                        cv::Vec3b pixel = graphic_img_.at<cv::Vec3b>(cv::Point(j,i));
+                        cv::Vec3b pixel_2 = binaryImage_copy_copy.at<cv::Vec3b>(cv::Point(j,i));
+                        pixel.val[0] = (pixel.val[0]==255?255:pixel_2.val[0]);
+                        pixel.val[1] = (pixel.val[1]==255?255:pixel_2.val[1]);
+                        pixel.val[2] = (pixel.val[2]==255?255:pixel_2.val[2]);
+                        if(pixel.val[0]!=255 || pixel.val[1]!=255 || pixel.val[2]!=255)
+                            cnt_pixs++;
+                        graphic_img_.at<cv::Vec3b>(cv::Point(j,i)) = pixel;
+                    }
+                }
+
+                if(cnt_pixs>50){
+
+                    possible_textual_area_cnt++;
+
+                    string out_name = "./" + pic_name + "_output_textual_element_"+to_string(possible_textual_area_cnt)+"."+ext;
+                    bool is_saved = cv::imwrite(out_name,graphic_img_);
+                    
+                    // show_image(graphic_img_);
+
+                    if(!is_saved){
+                        cout<<"Save Unsuccessful for text extraction."<<endl;
+                        exit(0);
+                    }
+
+                }
+
+            }
+
+            ele.first.push_back(ele.first[0]);
+
+            for(int i=1;i<ele.first.size();i++){
+                int x1 = ele.first[i].first;
+                int y1 = ele.first[i].second;
+
+                int x2 = ele.first[i-1].first;
+                int y2 = ele.first[i-1].second;
+                // if(once){
+                //     cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255));    
+                //     once = false;
+                // }
+                // else
+                // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
+                if(is_rectillinear)
+                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                else
+                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
+            }
+
+
+            // show_image(back_to_rgb);
+            string out_name = "./" + pic_name + "_output"+"."+ext;
+            bool is_saved = cv::imwrite(out_name,back_to_rgb_copy);
+
+            if(!is_saved){
+                cout<<"Save Unsuccessful."<<endl;
+                exit(0);
+            }
+
+        }
+   }
+
+    
+
+    /////////////////////////////////////////////
 
 
 	auto stop1 = std::chrono::high_resolution_clock::now();

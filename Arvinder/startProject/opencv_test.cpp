@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <string>
-#include <regex>
+// #include <bits/stdc++.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
@@ -246,14 +246,112 @@ bool analyse_shape_improved(vector<pair<int,int>> &cover_points){
 
 
 vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
-    int height, 
-    int width, 
-    vector<vector<bool>> &is_pixel_present, 
-    cv::Mat &binaryImage_copy_copy,
-    cv::Mat &binaryImage_copy,
-    string &pic_name,
-    string &ext,
-    cv::Mat &back_to_rgb_copy){
+    cv::Mat binaryImage){
+
+
+
+    cv::Mat binaryImage_copy = binaryImage.clone();
+    cv::Mat binaryImage_copy_copy = binaryImage.clone();
+
+
+    int height = binaryImage_copy_copy.size().height;
+    int width = binaryImage_copy_copy.size().width;
+
+    cv::Mat back_to_rgb;
+
+    // cv::cvtColor(binaryImage,back_to_rgb,cv::COLOR_GRAY2BGR);
+    // int g_ = GRID_SIZE;
+    // for (int i = 0; i<height; i += g_){
+    //     cv::line(back_to_rgb, cv::Point(0, i), cv::Point(width, i), cv::Scalar(255, 0, 0));
+    //     // g_++;
+    // }
+    // g_ = GRID_SIZE;
+    // for (int i = 0; i<width; i += g_){
+    //     cv::line(back_to_rgb, cv::Point(i, 0), cv::Point(i, height), cv::Scalar(255, 0, 0));
+    //     // g_++;
+    // }
+
+    // show_image(back_to_rgb);
+
+
+    if(PRE_PROCESS==1){
+        cv::Mat dst;
+        cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
+        cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
+        // cv::morphologyEx(binaryImage_copy,dst,cv::MORPH_CLOSE,elementKernel);
+        int times = 3;
+        // cv::erode(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
+        while(times--){
+            cv::dilate(binaryImage_copy,dst,elementKernel1,cv::Point(-1,-1),1);
+            cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
+            binaryImage_copy = dst.clone();
+            binaryImage = dst.clone();
+        }
+    }
+
+
+    std::vector<cv::Rect> mCells;
+
+    int BLOCK_HEIGHT = (height  )/GRID_SIZE;
+    int BLOCK_WIDTH = (width )/GRID_SIZE;
+
+    std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
+    std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
+
+    std::vector<std::vector<cv::Mat>> block_matrix(BLOCK_HEIGHT,std::vector<cv::Mat>(BLOCK_WIDTH));
+
+    for (int y = 0; y < height - GRID_SIZE; y += GRID_SIZE) {
+        for (int x = 0; x < width - GRID_SIZE; x += GRID_SIZE) {
+            int k = x*y + x;
+            cv::Rect grid_rect(x, y, GRID_SIZE, GRID_SIZE);
+            // std::cout << grid_rect<< std::endl;
+            mCells.push_back(grid_rect);
+            rectangle(binaryImage, grid_rect, cv::Scalar(0, 255, 0), 1);
+            int i_ = y/GRID_SIZE;
+            int j_ = x/GRID_SIZE;
+            block_matrix[i_][j_] = binaryImage(grid_rect);
+            // cv::imshow("src", binaryImage);
+            // cv::imshow(cv::format("grid%d",k), binaryImage(grid_rect));
+            // cv::waitKey(0);
+        }
+    }
+    // cout<<"hreeeeeee"<<endl;
+    // show_image(binaryImage_copy);
+
+    std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
+
+    std::cout<<"******************************"<<std::endl;
+
+    for(int i=0;i<BLOCK_HEIGHT;i++){
+        for(int j=0;j<BLOCK_WIDTH;j++){
+            // cv::imshow(cv::format("grid"), block_matrix[i][j]);
+            // cv::waitKey(0);
+            // std::cout<<" ### "<<i<<" "<<j<<std::endl;
+            if(INNER==1){
+                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
+                    is_pixel_present[i][j] = 0;
+                }
+                else{
+                    is_pixel_present[i][j] = 1;
+                }
+
+            }
+            else{
+
+                if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
+                    is_pixel_present[i][j] = 0;
+                }
+                else{
+                    is_pixel_present[i][j] = 1;
+                }
+            }
+            std::cout<<is_pixel_present[i][j];
+        }
+        std::cout<<std::endl;
+    }
+
+    std::cout<<"******************************"<<std::endl;
+    cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
 
     vector<pair<vector<pair<int,int>>,vector<int>>> return_value;
 
@@ -746,6 +844,12 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
 
 }
 
+int find_perimeter(vector<pair<int,int>> &point_list){
+    int n = point_list.size();
+    assert(n>1);
+    return n;
+}
+
 int main(){
 
     std::ios_base::sync_with_stdio(false);
@@ -753,6 +857,7 @@ int main(){
     std::cout.tie(NULL);
 
     srand(time(NULL));
+    
 
 
     auto start1 = std::chrono::high_resolution_clock::now();
@@ -766,14 +871,17 @@ int main(){
         $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     */
 
-   vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
-   vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
+    // vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
+    // vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
 
-   assert(pic_names.size()==exts.size());
+    vector<string> pic_names ={"0002"};
+    vector<string> exts = {"jpg"};    
 
-   for(int i=0;i<pic_names.size();i++){
+    assert(pic_names.size()==exts.size());
 
-       cout<<"NOW PROCESSING=====> "<<i<<endl;
+    for(int i=0;i<pic_names.size();i++){
+
+        cout<<"NOW PROCESSING=====> "<<i<<endl;
 
         string pic_name = pic_names[i];
         string ext = exts[i];
@@ -839,27 +947,12 @@ int main(){
 
         cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
 
-        cv::Mat binaryImage_copy = binaryImage.clone();
-        cv::Mat binaryImage_copy_copy = binaryImage_copy.clone();
+        cv::Mat binaryImage_copy_copy = binaryImage.clone();
 
         // show_image(binaryImage_copy);
 
-
-        if(PRE_PROCESS==1){
-            cv::Mat dst;
-            cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
-            cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
-            // cv::morphologyEx(binaryImage_copy,dst,cv::MORPH_CLOSE,elementKernel);
-            int times = 3;
-            // cv::erode(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
-            while(times--){
-                cv::dilate(binaryImage_copy,dst,elementKernel1,cv::Point(-1,-1),1);
-                cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
-                binaryImage_copy = dst.clone();
-                binaryImage = dst.clone();
-            }
-        }
-
+        cv::Mat back_to_rgb_copy;
+        cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
         // cv::dilate(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
         // cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
         // show_image(dst);
@@ -872,95 +965,12 @@ int main(){
 
         // 10 test images => binary
 
-        int height = image.size().height;
-        int width = image.size().width;
-
-        cv::Mat back_to_rgb;
-
-        // cv::cvtColor(binaryImage,back_to_rgb,cv::COLOR_GRAY2BGR);
-        // int g_ = GRID_SIZE;
-        // for (int i = 0; i<height; i += g_){
-        //     cv::line(back_to_rgb, cv::Point(0, i), cv::Point(width, i), cv::Scalar(255, 0, 0));
-        //     // g_++;
-        // }
-        // g_ = GRID_SIZE;
-        // for (int i = 0; i<width; i += g_){
-        //     cv::line(back_to_rgb, cv::Point(i, 0), cv::Point(i, height), cv::Scalar(255, 0, 0));
-        //     // g_++;
-        // }
-
-        // show_image(back_to_rgb);
-
-
-        std::vector<cv::Rect> mCells;
-
-        int BLOCK_HEIGHT = (height  )/GRID_SIZE;
-        int BLOCK_WIDTH = (width )/GRID_SIZE;
-
-        std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
-        std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
-
-        std::vector<std::vector<cv::Mat>> block_matrix(BLOCK_HEIGHT,std::vector<cv::Mat>(BLOCK_WIDTH));
-
-        for (int y = 0; y < height - GRID_SIZE; y += GRID_SIZE) {
-            for (int x = 0; x < width - GRID_SIZE; x += GRID_SIZE) {
-                int k = x*y + x;
-                cv::Rect grid_rect(x, y, GRID_SIZE, GRID_SIZE);
-                // std::cout << grid_rect<< std::endl;
-                mCells.push_back(grid_rect);
-                rectangle(binaryImage, grid_rect, cv::Scalar(0, 255, 0), 1);
-                int i_ = y/GRID_SIZE;
-                int j_ = x/GRID_SIZE;
-                block_matrix[i_][j_] = binaryImage(grid_rect);
-                // cv::imshow("src", binaryImage);
-                // cv::imshow(cv::format("grid%d",k), binaryImage(grid_rect));
-                // cv::waitKey(0);
-            }
-        }
-        // cout<<"hreeeeeee"<<endl;
-        // show_image(binaryImage_copy);
-
-        std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
-
-        std::cout<<"******************************"<<std::endl;
-
-        for(int i=0;i<BLOCK_HEIGHT;i++){
-            for(int j=0;j<BLOCK_WIDTH;j++){
-                // cv::imshow(cv::format("grid"), block_matrix[i][j]);
-                // cv::waitKey(0);
-                // std::cout<<" ### "<<i<<" "<<j<<std::endl;
-                if(INNER==1){
-                    if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
-                        is_pixel_present[i][j] = 0;
-                    }
-                    else{
-                        is_pixel_present[i][j] = 1;
-                    }
-
-                }
-                else{
-
-                    if((IMPROVED==1?are_all_pixels_white_improved(binaryImage_copy,i,j):are_all_pixels_white(block_matrix[i][j]))){
-                        is_pixel_present[i][j] = 0;
-                    }
-                    else{
-                        is_pixel_present[i][j] = 1;
-                    }
-                }
-                std::cout<<is_pixel_present[i][j];
-            }
-            std::cout<<std::endl;
-        }
-
-        std::cout<<"******************************"<<std::endl;
-        cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
-        cv::Mat back_to_rgb_copy;
-        cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
+        
 
 
         //////// COVER FINDING AND ANALYSIS /////////
 
-        auto return_vec = cover_gen(height,width,is_pixel_present,binaryImage_copy_copy,binaryImage_copy,pic_name,ext,back_to_rgb_copy);
+        auto return_vec = cover_gen(binaryImage);
 
 
             
@@ -1013,6 +1023,8 @@ int main(){
                     }
                 }
 
+                cv::Mat second_stage_img = graphic_img_;
+
                 if(cnt_pixs>50){
 
                     graphic_area_cnt++;
@@ -1026,6 +1038,14 @@ int main(){
                         cout<<"Save Unsuccessful for graphic extraction."<<endl;
                         exit(0);
                     }
+                    // int cur = GRID_SIZE;
+                    // #undef GRID_SIZE
+	                // #define GRID_SIZE 5
+                    // auto cover_second_stage = cover_gen(graphic_img_,pi)
+                    // #undef GRID_SIZE
+                    // #define GRID_SIZE cur
+
+
 
 
                 }
@@ -1123,7 +1143,7 @@ int main(){
             }
 
         }
-   }
+    }    
 
     
 

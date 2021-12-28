@@ -22,13 +22,14 @@
 using namespace std;
 
 #define INNER 0
-#define GRID_SIZE 23
 #define IMPROVED 1
 #define LINE_GEN_STRICTNESS 1
 #define CNT_LINE_AFTER 1
 #define ERROR_TOLERANCE 110// in percent
 #define THRESHOLD 0.7
-#define PRE_PROCESS 0
+#define PRE_PROCESS 1
+
+int GRID_SIZE = 23;
 
 void line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
 
@@ -278,15 +279,17 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
         cv::Mat dst;
         cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
         cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
+        cv::Mat elementKernel3 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(2,2),cv::Point(-1,-1));
         // cv::morphologyEx(binaryImage_copy,dst,cv::MORPH_CLOSE,elementKernel);
-        int times = 3;
-        // cv::erode(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
+        int times = 5;
+        cv::dilate(binaryImage_copy,binaryImage_copy,elementKernel1,cv::Point(-1,-1),1);
         while(times--){
-            cv::dilate(binaryImage_copy,dst,elementKernel1,cv::Point(-1,-1),1);
-            cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
+            // cv::dilate(binaryImage_copy,dst,elementKernel3,cv::Point(-1,-1),1);
+            cv::erode(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
             binaryImage_copy = dst.clone();
             binaryImage = dst.clone();
         }
+        show_image(binaryImage_copy);
     }
 
 
@@ -836,6 +839,29 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
             break;
     }
 
+    cv::Mat temp = binaryImage_copy_copy;
+
+    // show_image(temp);
+
+    // for(auto &ele1 : return_value){
+    //     ele1.first.push_back(ele1.first[0]);
+    //     // cout<<"**********##########********"<<endl;
+    //     // for(auto &vals:ele1.first)
+    //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+    //     // cout<<"**********##########********"<<endl;
+    //     for(int i=1;i<ele1.first.size();i++){
+    //         int x1 = ele1.first[i].first;
+    //         int y1 = ele1.first[i].second;
+
+    //         int x2 = ele1.first[i-1].first;
+    //         int y2 = ele1.first[i-1].second;
+    //         cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+    //         // show_image(graphic_img_copy);
+    //     }
+    // }
+
+    // show_image(temp);
+
 
     return return_value;
 
@@ -1024,26 +1050,52 @@ int main(){
                 }
 
                 cv::Mat second_stage_img = graphic_img_;
+                cv::cvtColor(second_stage_img,second_stage_img,cv::COLOR_GRAY2BGR);
 
                 if(cnt_pixs>50){
 
                     graphic_area_cnt++;
 
                     string out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
-
-                    // show_image(graphic_img_);
                     bool is_saved = cv::imwrite(out_name,graphic_img_);
 
                     if(!is_saved){
                         cout<<"Save Unsuccessful for graphic extraction."<<endl;
                         exit(0);
                     }
-                    // int cur = GRID_SIZE;
-                    // #undef GRID_SIZE
-	                // #define GRID_SIZE 5
-                    // auto cover_second_stage = cover_gen(graphic_img_,pi)
-                    // #undef GRID_SIZE
-                    // #define GRID_SIZE cur
+
+                    // cv::Mat graphic_img_copy = graphic_img_.clone();
+                    // int prev_gs = GRID_SIZE;
+                    // GRID_SIZE = 5;
+
+
+                    // show_image(second_stage_img);
+
+                    
+                    // auto cover_second_stage = cover_gen(graphic_img_);
+
+                    // GRID_SIZE = prev_gs;
+                    
+
+
+                    // for(auto &ele1 : cover_second_stage){
+                    //     ele1.first.push_back(ele1.first[0]);
+                    //     // cout<<"**********##########********"<<endl;
+                    //     // for(auto &vals:ele1.first)
+                    //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+                    //     // cout<<"**********##########********"<<endl;
+                    //     for(int i=1;i<ele1.first.size();i++){
+                    //         int x1 = ele1.first[i].first;
+                    //         int y1 = ele1.first[i].second;
+
+                    //         int x2 = ele1.first[i-1].first;
+                    //         int y2 = ele1.first[i-1].second;
+                    //         cv::line(second_stage_img,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                    //         // show_image(graphic_img_copy);
+                    //     }
+                    // }
+
+                    // show_image(second_stage_img);
 
 
 
@@ -1094,14 +1146,66 @@ int main(){
                     }
                 }
 
+                cv::Mat second_stage_img = graphic_img_;
+                cv::cvtColor(second_stage_img,second_stage_img,cv::COLOR_GRAY2BGR);
+
                 if(cnt_pixs>50){
-
-                    possible_textual_area_cnt++;
-
-                    string out_name = "./" + pic_name + "_output_textual_element_"+to_string(possible_textual_area_cnt)+"."+ext;
-                    bool is_saved = cv::imwrite(out_name,graphic_img_);
                     
                     // show_image(graphic_img_);
+
+                    int prev_gs = GRID_SIZE;
+                    int smaller_gs = 6;
+                    GRID_SIZE = smaller_gs;
+
+                    auto cover_second_stage = cover_gen(graphic_img_);
+
+                    GRID_SIZE = prev_gs;
+                    
+                    map<int,int> track_cover_sizes;
+
+
+                    for(auto &ele1 : cover_second_stage){
+                        track_cover_sizes[find_perimeter(ele1.first)]++;
+                        ele1.first.push_back(ele1.first[0]);
+                        // cout<<"**********##########********"<<endl;
+                        // for(auto &vals:ele1.first)
+                        //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+                        // cout<<"**********##########********"<<endl;
+                        for(int i=1;i<ele1.first.size();i++){
+                            int x1 = ele1.first[i].first;
+                            int y1 = ele1.first[i].second;
+
+                            int x2 = ele1.first[i-1].first;
+                            int y2 = ele1.first[i-1].second;
+                            cv::line(second_stage_img,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                            // show_image(graphic_img_copy);
+                        }
+                    }
+                    
+                    int max_cover_size = INT_MIN;
+
+                    cout<<"**********##########********"<<endl;
+                    int outer_bigger_cover_perimeter = find_perimeter(ele.first)*prev_gs;
+                    cout<<"Outer bigger perimeter: "<<outer_bigger_cover_perimeter<<endl; 
+                    for(auto &[x,y]:track_cover_sizes){
+                        max_cover_size = max(max_cover_size,(x*smaller_gs));
+                        cout<<"["<<(x*smaller_gs)<<"=>"<<y<<"]"<<endl;
+                    }
+                    cout<<"**********##########********"<<endl;
+                    string out_name;
+                    if(max_cover_size>1000){
+                        graphic_area_cnt++;
+                        out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
+                    }
+                    else{
+
+                        possible_textual_area_cnt++;
+                        out_name = "./" + pic_name + "_output_textual_element_"+to_string(possible_textual_area_cnt)+"."+ext;
+                    }
+
+                    bool is_saved = cv::imwrite(out_name,second_stage_img);
+
+                    // show_image(second_stage_img);
 
                     if(!is_saved){
                         cout<<"Save Unsuccessful for text extraction."<<endl;
@@ -1132,16 +1236,19 @@ int main(){
                     cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
             }
 
+            // cv::line(back_to_rgb_copy,cv::Point(0, 0), cv::Point(200, 200), cv::Scalar(255, 0, 0));
 
-            // show_image(back_to_rgb);
-            string out_name = "./" + pic_name + "_output"+"."+ext;
-            bool is_saved = cv::imwrite(out_name,back_to_rgb_copy);
 
-            if(!is_saved){
-                cout<<"Save Unsuccessful."<<endl;
-                exit(0);
-            }
+            
 
+        }
+        // show_image(back_to_rgb);
+        string out_name = "./" + pic_name + "_output"+"."+ext;
+        bool is_saved = cv::imwrite(out_name,back_to_rgb_copy);
+
+        if(!is_saved){
+            cout<<"Save Unsuccessful."<<endl;
+            exit(0);
         }
     }    
 

@@ -21,17 +21,19 @@
 
 using namespace std;
 
-#define INNER 0
+// #define INNER 0
 #define IMPROVED 1
 #define LINE_GEN_STRICTNESS 1
 #define CNT_LINE_AFTER 1
 #define ERROR_TOLERANCE 110// in percent
-#define THRESHOLD 0.7
-#define PRE_PROCESS 1
+#define THRESHOLD 0.6
+// #define PRE_PROCESS 1
 
 int GRID_SIZE = 23;
+int PRE_PROCESS = 1;
+int INNER = 0;
 
-void line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
+int line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
 
 void show_image(cv::Mat &image){
 
@@ -204,6 +206,26 @@ bool analyse_shape(vector<int> &dir){
 
 }
 
+double polygon_area(vector<pair<int,int>> &cover_points){
+    double area = 0.0;
+    
+    int n = cover_points.size();
+
+    int j = n - 1;
+    double min_x = INT_MAX, min_y = INT_MAX;
+    double max_x = INT_MIN, max_y = INT_MIN;
+
+    for (int i = 0; i < n; i++){
+        min_x = min(min_x,(double)cover_points[i].first);
+        min_y = min(min_y,(double)cover_points[i].second);
+        max_x = max(max_x,(double)cover_points[i].first);
+        max_y = max(max_y,(double)cover_points[i].second);
+        area += (cover_points[j].first + cover_points[i].first) * (cover_points[j].second - cover_points[i].second);
+        j = i;  
+    }
+
+    return abs(area)/2;
+}
 
 bool analyse_shape_improved(vector<pair<int,int>> &cover_points){
     
@@ -289,7 +311,7 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
             binaryImage_copy = dst.clone();
             binaryImage = dst.clone();
         }
-        show_image(binaryImage_copy);
+        // show_image(binaryImage_copy);
     }
 
 
@@ -900,8 +922,8 @@ int main(){
     // vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
     // vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
 
-    vector<string> pic_names ={"0002"};
-    vector<string> exts = {"jpg"};    
+    vector<string> pic_names ={"doc_img10"};
+    vector<string> exts = {"png"};    
 
     assert(pic_names.size()==exts.size());
 
@@ -996,7 +1018,7 @@ int main(){
 
         //////// COVER FINDING AND ANALYSIS /////////
 
-        auto return_vec = cover_gen(binaryImage);
+        vector<pair<vector<pair<int,int>>,vector<int>>> return_vec = cover_gen(binaryImage);
 
 
             
@@ -1054,48 +1076,106 @@ int main(){
 
                 if(cnt_pixs>50){
 
-                    graphic_area_cnt++;
+                    int prev_gs = GRID_SIZE;
+                    int prev_process = PRE_PROCESS;
+                    int smaller_gs = 3;
+                    int prev_inner = INNER;
+                    GRID_SIZE = smaller_gs;
+                    PRE_PROCESS = 0;
+                    INNER = 0;
 
-                    string out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
-                    bool is_saved = cv::imwrite(out_name,graphic_img_);
+                    vector<pair<vector<pair<int,int>>,vector<int>>> cover_second_stage = cover_gen(graphic_img_);
+
+                    GRID_SIZE = prev_gs;
+                    PRE_PROCESS = prev_process;
+                    INNER = prev_inner;
+
+                    map<int,int> track_cover_sizes;
+
+                    double sum_perimeter = 0;
+                    double sum_area = 0;
+                    int n_count = 0;
+
+                    for(auto &ele1 : cover_second_stage){
+                        
+                        sum_perimeter+=(find_perimeter(ele1.first));
+                        sum_area+=(polygon_area(ele1.first));
+                        int ele1_size = ele1.first.size();
+                        for(int i=0;i<ele1_size;i++){
+                            auto prev = ele1.first[(i-1+ele1_size)%ele1_size];
+                            auto cur = ele1.first[i];
+                            auto next = ele1.first[(i+1)%ele1_size];
+                            if(
+                                (prev.first==cur.first && cur.first==next.first) ||
+                                (prev.second==cur.second && cur.second==next.second)
+                            ){
+                                // n_count++;
+                            }
+                            else{
+                                n_count++;
+                            }
+                        }
+
+                        ele1.first.push_back(ele1.first[0]);
+                        // cout<<"**********##########********"<<endl;
+                        // for(auto &vals:ele1.first)
+                        //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+                        // cout<<"**********##########********"<<endl;
+                        for(int i=1;i<ele1.first.size();i++){
+                            int x1 = ele1.first[i].first;
+                            int y1 = ele1.first[i].second;
+
+                            int x2 = ele1.first[i-1].first;
+                            int y2 = ele1.first[i-1].second;
+                            cv::line(second_stage_img,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                            // show_image(graphic_img_copy);
+                        }
+                        ele1.first.pop_back();
+                        line_detection(second_stage_img, ele1.first, ele1.second);
+                    }
+                    
+                    int max_cover_size = INT_MIN;
+
+                    cout<<"**********##########********"<<endl;
+                    int outer_bigger_cover_perimeter = find_perimeter(ele.first)*prev_gs;
+                    cout<<"Outer bigger perimeter: "<<outer_bigger_cover_perimeter<<endl; 
+                    for(auto &[x,y]:track_cover_sizes){
+                        max_cover_size = max(max_cover_size,(x*smaller_gs));
+                        cout<<"["<<(x*smaller_gs)<<"=>"<<y<<"]"<<endl;
+                    }
+                    cout<<"**********##########********"<<endl;
+                    string out_name;
+                    
+                    graphic_area_cnt++;
+                    double first_ratio = ((double)sum_area)/n_count;
+                    double second_ratio = ((double)sum_perimeter)/n_count;
+                    cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+                    cout<<"sum_area: "<<sum_area<<endl;
+                    cout<<"sum_perimeter: "<<sum_area<<endl;
+                    cout<<"first_ratio: "<<first_ratio<<endl;
+                    cout<<"second_ratio: "<<second_ratio<<endl;
+                    cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+
+                    if(first_ratio>35){
+                        out_name = "./" + pic_name + "_output_graphic_element_EO_"+to_string(graphic_area_cnt)+"."+ext;
+
+                    }
+                    else if(second_ratio>7){
+                        out_name = "./" + pic_name + "_output_graphic_element_ED_AP_"+to_string(graphic_area_cnt)+"."+ext;
+                    }
+                    else{
+                        out_name = "./" + pic_name + "_output_graphic_element_HDS_"+to_string(graphic_area_cnt)+"."+ext;
+                    }
+                    
+
+                    bool is_saved = cv::imwrite(out_name,second_stage_img);
+
+                    show_image(second_stage_img);
 
                     if(!is_saved){
-                        cout<<"Save Unsuccessful for graphic extraction."<<endl;
+                        cout<<"Save Unsuccessful for text extraction."<<endl;
                         exit(0);
                     }
-
-                    // cv::Mat graphic_img_copy = graphic_img_.clone();
-                    // int prev_gs = GRID_SIZE;
-                    // GRID_SIZE = 5;
-
-
-                    // show_image(second_stage_img);
-
-                    
-                    // auto cover_second_stage = cover_gen(graphic_img_);
-
-                    // GRID_SIZE = prev_gs;
-                    
-
-
-                    // for(auto &ele1 : cover_second_stage){
-                    //     ele1.first.push_back(ele1.first[0]);
-                    //     // cout<<"**********##########********"<<endl;
-                    //     // for(auto &vals:ele1.first)
-                    //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
-                    //     // cout<<"**********##########********"<<endl;
-                    //     for(int i=1;i<ele1.first.size();i++){
-                    //         int x1 = ele1.first[i].first;
-                    //         int y1 = ele1.first[i].second;
-
-                    //         int x2 = ele1.first[i-1].first;
-                    //         int y2 = ele1.first[i-1].second;
-                    //         cv::line(second_stage_img,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
-                    //         // show_image(graphic_img_copy);
-                    //     }
-                    // }
-
-                    // show_image(second_stage_img);
 
 
 
@@ -1154,18 +1234,53 @@ int main(){
                     // show_image(graphic_img_);
 
                     int prev_gs = GRID_SIZE;
-                    int smaller_gs = 6;
+                    int prev_process = PRE_PROCESS;
+                    int smaller_gs = 3;
+                    int prev_inner = INNER;
                     GRID_SIZE = smaller_gs;
+                    PRE_PROCESS = 0;
+                    INNER = 0;
 
-                    auto cover_second_stage = cover_gen(graphic_img_);
+                    vector<pair<vector<pair<int,int>>,vector<int>>> cover_second_stage = cover_gen(graphic_img_);
 
                     GRID_SIZE = prev_gs;
+                    PRE_PROCESS = prev_process;
+                    INNER = prev_inner;
+
+                    
                     
                     map<int,int> track_cover_sizes;
+
+                    double sum_perimeter = 0;
+                    double sum_area = 0;
+                    int n_count = 0;
 
 
                     for(auto &ele1 : cover_second_stage){
                         track_cover_sizes[find_perimeter(ele1.first)]++;
+
+                        sum_perimeter+=(find_perimeter(ele1.first));
+                        sum_area+=(polygon_area(ele1.first));
+                        
+                        int ele1_size = ele1.first.size();
+                        for(int i=0;i<ele1_size;i++){
+                            auto prev = ele1.first[(i-1+ele1_size)%ele1_size];
+                            auto cur = ele1.first[i];
+                            auto next = ele1.first[(i+1)%ele1_size];
+                            if(
+                                (prev.first==cur.first && cur.first==next.first) ||
+                                (prev.second==cur.second && cur.second==next.second)
+                            ){
+                                // n_count++;
+                            }
+                            else{
+                                n_count++;
+                            }
+                        }
+
+                        // assert(n_count==ele1.first.size());
+
+
                         ele1.first.push_back(ele1.first[0]);
                         // cout<<"**********##########********"<<endl;
                         // for(auto &vals:ele1.first)
@@ -1180,6 +1295,8 @@ int main(){
                             cv::line(second_stage_img,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
                             // show_image(graphic_img_copy);
                         }
+                        ele1.first.pop_back();
+                        line_detection(second_stage_img, ele1.first, ele1.second);
                     }
                     
                     int max_cover_size = INT_MIN;
@@ -1193,9 +1310,28 @@ int main(){
                     }
                     cout<<"**********##########********"<<endl;
                     string out_name;
-                    if(max_cover_size>1000){
+                    if(max_cover_size>1100){
                         graphic_area_cnt++;
-                        out_name = "./" + pic_name + "_output_graphic_element_"+to_string(graphic_area_cnt)+"."+ext;
+                        double first_ratio = ((double)sum_area)/n_count;
+                        double second_ratio = ((double)sum_perimeter)/n_count;
+
+                        cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+                        cout<<"sum_area: "<<sum_area<<endl;
+                        cout<<"sum_perimeter: "<<sum_area<<endl;
+                        cout<<"first_ratio: "<<first_ratio<<endl;
+                        cout<<"second_ratio: "<<second_ratio<<endl;
+                        cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+
+                        if(first_ratio>35){
+                            out_name = "./" + pic_name + "_output_graphic_element_EO_"+to_string(graphic_area_cnt)+"."+ext;
+
+                        }
+                        else if(second_ratio>7){
+                            out_name = "./" + pic_name + "_output_graphic_element_ED_AP_"+to_string(graphic_area_cnt)+"."+ext;
+                        }
+                        else{
+                            out_name = "./" + pic_name + "_output_graphic_element_HDS_"+to_string(graphic_area_cnt)+"."+ext;
+                        }
                     }
                     else{
 
@@ -1205,7 +1341,7 @@ int main(){
 
                     bool is_saved = cv::imwrite(out_name,second_stage_img);
 
-                    // show_image(second_stage_img);
+                    show_image(second_stage_img);
 
                     if(!is_saved){
                         cout<<"Save Unsuccessful for text extraction."<<endl;
@@ -1280,7 +1416,7 @@ int main(){
 
 
 
-void line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list, vector<int> &direction_vector){
+int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list, vector<int> &direction_vector){
     // bool once = true;
     // for(int i=1;i<cover_point_list.size();i++){
     //     int x1 = cover_point_list[i].first;
@@ -1449,11 +1585,14 @@ void line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_lis
 
     cout<<"@@@@@@@ ST LINES::::: "<<new_line_list.size()<<endl;
 
+    int cnt_color_lines = 0;
+
     for(auto &[l,r]:new_line_list){
         cout<<"####### ==> "<<l<<" "<<r<<endl;
         /*
             Generate some color:
         */
+       cnt_color_lines++;
 
         int b_ = rand()%255;
         int g_ = rand()%255;
@@ -1470,6 +1609,6 @@ void line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_lis
     }
 
 
-
+    return cnt_color_lines;
 
 }

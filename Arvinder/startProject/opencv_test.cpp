@@ -30,7 +30,7 @@ using namespace std;
 // #define PRE_PROCESS 1
 
 int GRID_SIZE = 23;
-int PRE_PROCESS = 1;
+int PRE_PROCESS = 0;
 int INNER = 0;
 
 int line_detection(cv::Mat &, vector<pair<int,int>> &, vector<int> &);
@@ -922,8 +922,8 @@ int main(){
     // vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
     // vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
 
-    vector<string> pic_names ={"doc_img10"};
-    vector<string> exts = {"png"};    
+    vector<string> pic_names ={"0002"};
+    vector<string> exts = {"jpg"};    
 
     assert(pic_names.size()==exts.size());
 
@@ -986,6 +986,8 @@ int main(){
         // show_image(image);
 
         // show_image(grayImage);
+        string o_name = "./" + pic_name + "_output_gray_image"+"."+ext;
+        cv::imwrite(o_name,grayImage);
 
         // show_image(image);
 
@@ -993,9 +995,15 @@ int main(){
 
         cv::split(image,channels);
 
+
+        // show_image(grayImage);
         cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
+        // show_image(binaryImage);
 
         cv::Mat binaryImage_copy_copy = binaryImage.clone();
+
+        o_name = "./" + pic_name + "_output_binary_image"+"."+ext;
+        cv::imwrite(o_name,binaryImage_copy_copy);
 
         // show_image(binaryImage_copy);
 
@@ -1367,7 +1375,7 @@ int main(){
                 // else
                 // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
                 if(is_rectillinear)
-                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+                    cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 255, 0));
                 else
                     cv::line(back_to_rgb_copy, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 255));
             }

@@ -18,6 +18,10 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/imgcodecs.hpp>
+#include <filesystem>
+namespace fs = std::__fs::filesystem;
+
+// #include <tesseract/baseapi.h>
 
 using namespace std;
 
@@ -29,8 +33,8 @@ using namespace std;
 #define THRESHOLD 0.6
 // #define PRE_PROCESS 1
 
-int GRID_SIZE = 23;
-int PRE_PROCESS = 1;
+int GRID_SIZE = 5;
+int PRE_PROCESS = 0;
 int INNER = 0;
 int smaller_gs = 5;
 
@@ -199,7 +203,7 @@ bool analyse_shape(vector<int> &dir){
         ret_err = min(ret_err,(long long)(err_now*n));
     }
     // cout<<"2222 HERERERERER"<<endl;
-    cout<<"RETT errr : "<<ret_err<<endl;
+    // cout<<"RETT errr : "<<ret_err<<endl;
     if(ret_err>ERROR_TOLERANCE and (n)>10)
         return false;
     return true;
@@ -321,8 +325,8 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
     int BLOCK_HEIGHT = (height  )/GRID_SIZE;
     int BLOCK_WIDTH = (width )/GRID_SIZE;
 
-    std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
-    std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
+    // std::cout<<"BLOCK_HEIGHT : "<<BLOCK_HEIGHT<<std::endl;
+    // std::cout<<"BLOCK_WIDTH : "<<BLOCK_WIDTH<<std::endl;
 
     std::vector<std::vector<cv::Mat>> block_matrix(BLOCK_HEIGHT,std::vector<cv::Mat>(BLOCK_WIDTH));
 
@@ -346,7 +350,7 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
 
     std::vector<std::vector<bool>> is_pixel_present(BLOCK_HEIGHT,std::vector<bool>(BLOCK_WIDTH));
 
-    std::cout<<"******************************"<<std::endl;
+    // std::cout<<"******************************"<<std::endl;
 
     for(int i=0;i<BLOCK_HEIGHT;i++){
         for(int j=0;j<BLOCK_WIDTH;j++){
@@ -371,12 +375,12 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
                     is_pixel_present[i][j] = 1;
                 }
             }
-            std::cout<<is_pixel_present[i][j];
+            // std::cout<<is_pixel_present[i][j];
         }
-        std::cout<<std::endl;
+        // std::cout<<std::endl;
     }
 
-    std::cout<<"******************************"<<std::endl;
+    // std::cout<<"******************************"<<std::endl;
     cv::cvtColor(binaryImage_copy,back_to_rgb,cv::COLOR_GRAY2BGR);
 
     vector<pair<vector<pair<int,int>>,vector<int>>> return_value;
@@ -546,7 +550,7 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
 
             number_of_covers++;
 
-            cout<<"====> "<<start_pixel_position.first<<" "<<start_pixel_position.second<<endl;
+            // cout<<"====> "<<start_pixel_position.first<<" "<<start_pixel_position.second<<endl;
 
 
             int orientation_of_1 = find_K_in_C1(start_pixel_position);
@@ -796,19 +800,19 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
                 Traversal directions:
             */
 
-            cout<<"-------------------Traversal Direction Below Cover No."<<number_of_covers<<"------------------"<<endl;
+            // cout<<"-------------------Traversal Direction Below Cover No."<<number_of_covers<<"------------------"<<endl;
 
-            for(auto ele:direction_vector){
-                cout<<ele;
-            }
-            cout<<endl;
-            cout<<direction_vector.size()<<endl;
-            // Analyze shape
-            cout<<"******===>> "<<"here"<<endl;
-            // bool is_rectillinear = analyse_shape_regex(direction_vector);
-            cout<<"******===>> "<<"here"<<endl;
-            // cout<<direction_vector[35]<<" "<<direction_vector[108]<<endl;
-            cout<<endl<<"-------------------------------------"<<endl;
+            // for(auto ele:direction_vector){
+            //     cout<<ele;
+            // }
+            // cout<<endl;
+            // cout<<direction_vector.size()<<endl;
+            // // Analyze shape
+            // cout<<"******===>> "<<"here"<<endl;
+            // // bool is_rectillinear = analyse_shape_regex(direction_vector);
+            // cout<<"******===>> "<<"here"<<endl;
+            // // cout<<direction_vector[35]<<" "<<direction_vector[108]<<endl;
+            // cout<<endl<<"-------------------------------------"<<endl;
 
             return_value.push_back({point_list,direction_vector});
 
@@ -841,7 +845,7 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
                 is_pixel_taken[p.first/GRID_SIZE][p.second/GRID_SIZE] = true;
             }
 
-            cout<<"here"<<endl;
+            // cout<<"here"<<endl;
 
             // show_image(back_to_rgb);
 
@@ -862,28 +866,29 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
             break;
     }
 
-    cv::Mat temp = binaryImage_copy_copy;
+    cv::Mat temp;
+    cv::cvtColor(binaryImage_copy_copy,temp,cv::COLOR_GRAY2BGR);
 
     // show_image(temp);
 
-    // for(auto &ele1 : return_value){
-    //     ele1.first.push_back(ele1.first[0]);
-    //     // cout<<"**********##########********"<<endl;
-    //     // for(auto &vals:ele1.first)
-    //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
-    //     // cout<<"**********##########********"<<endl;
-    //     for(int i=1;i<ele1.first.size();i++){
-    //         int x1 = ele1.first[i].first;
-    //         int y1 = ele1.first[i].second;
+    for(auto &ele1 : return_value){
+        ele1.first.push_back(ele1.first[0]);
+        // cout<<"**********##########********"<<endl;
+        // for(auto &vals:ele1.first)
+        //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+        // cout<<"**********##########********"<<endl;
+        for(int i=1;i<ele1.first.size();i++){
+            int x1 = ele1.first[i].first;
+            int y1 = ele1.first[i].second;
 
-    //         int x2 = ele1.first[i-1].first;
-    //         int y2 = ele1.first[i-1].second;
-    //         cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
-    //         // show_image(graphic_img_copy);
-    //     }
-    // }
+            int x2 = ele1.first[i-1].first;
+            int y2 = ele1.first[i-1].second;
+            cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+            // show_image(graphic_img_copy);
+        }
+    }
 
-    // show_image(temp);
+    show_image(temp);
 
 
     return return_value;
@@ -931,7 +936,7 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
             sum[j][i] = (direction_vector[i]==j);
         }
     }
-    cout<<"Upto here?"<<endl;
+    // cout<<"Upto here?"<<endl;
     
     for(int j=1;j<=4;j++)
         for(int i=1;i<n;i++)
@@ -1024,7 +1029,7 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
                         lb = cur_left+1;
                         rb = cur_right-1;
                         int see = sum_in_range(lb,rb,dir_val_in_range);
-                        cout<<"&&&&&&====> "<<j<<" || "<<see<<" "<<w<<" "<<no_of_dir_in_range<<endl;
+                        // cout<<"&&&&&&====> "<<j<<" || "<<see<<" "<<w<<" "<<no_of_dir_in_range<<endl;
                         if(abs(see-no_of_dir_in_range)<=LINE_GEN_STRICTNESS and see==rb-lb+1){
                             w++;
                             cnt++;
@@ -1066,12 +1071,12 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
         }
     }
 
-    cout<<"@@@@@@@ ST LINES::::: "<<new_line_list.size()<<endl;
+    // cout<<"@@@@@@@ ST LINES::::: "<<new_line_list.size()<<endl;
 
     int cnt_color_lines = 0;
 
-    for(auto &[l,r]:new_line_list){
-        cout<<"####### ==> "<<l<<" "<<r<<endl;
+    for(auto &[l,r]:line_list){
+        // cout<<"####### ==> "<<l<<" "<<r<<endl;
         /*
             Generate some color:
         */
@@ -1088,8 +1093,10 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
             int x2 = cover_point_list[i].first;
             int y2 = cover_point_list[i].second;
             cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(b_, g_, r_)); 
+            // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255)); 
         }
     }
+
 
 
     return cnt_color_lines;
@@ -1140,6 +1147,8 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
 
     cv::Mat binaryImage_copy = binaryImage.clone();
 
+    // show_image(binaryImage_copy);
+
     vector< pair< vector<pair<int,int>>,vector<int> > > covers_small_grid = cover_gen(binaryImage);
 
     // show_image(binaryImage);
@@ -1171,9 +1180,11 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
         int k = -1;
 
         // cout<<"************"<<endl;
+
         // for(auto ele:vertical_lines){
         //     cout<<ele.y_low<<" "<<ele.y_high<<endl;
         // }
+        
         // cout<<endl<<"************"<<endl;
         // cout<<"#############"<<endl;
         // cout<<y<<endl;
@@ -1282,12 +1293,16 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
 
     /// EXPERIMENT ///
 
+    int big_test_crop = 1;
+
     for(int i=0;i<total_big_covers;i++){
         int choice_b = rand()%256;
         int choice_g = rand()%256;
         int choice_r = rand()%256;
 
         
+
+        int word_test_crops = 1;
 
         for(auto &covs:ans[i]){
             int max_y = INT_MIN;
@@ -1313,7 +1328,7 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
 
             cv::Rect crop_region(min_x, min_y, max_x-min_x, max_y-min_y);
 
-            cv::Mat crop = back_to_rgb_copy(crop_region);
+            cv::Mat crop = binaryImage_copy(crop_region);
 
             // show_image(crop);
 
@@ -1322,7 +1337,18 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
             cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r));
             cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r));
 
+            // cv::Mat crop_img(crop_region);
+
+
+
+            string out_name = "./word_test_imgs/" + to_string(big_test_crop) + "_" + to_string(word_test_crops)+".png";
+            cv::imwrite(out_name,crop);
+            
+            word_test_crops++;
+
+
         }
+        big_test_crop++;
 
     }
 
@@ -1332,7 +1358,7 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
     string out_name = "./cover_identif_0002.png";
     cv::imwrite(out_name,back_to_rgb_copy);
 
-    cout<<endl<<"hehehehhehehheh";
+    // cout<<endl<<"hehehehhehehheh";
     // show_image(binaryImage);
     exit(100);
     
@@ -1364,8 +1390,27 @@ int main(){
     // vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
     // vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
 
-    vector<string> pic_names ={"0002"};
-    vector<string> exts = {"jpg"};    
+    vector<string> pic_names;
+    vector<string> exts;    
+
+    string path = "./Images_for_project";
+
+    for (const auto & entry : fs::directory_iterator(path)){
+        string path_name = entry.path();
+        pic_names.push_back(path_name.substr(0,path_name.length()-4));
+        exts.push_back(path_name.substr(path_name.length()-3,3));
+    }
+
+    // for(auto &ele1 : pic_names){
+    //     cout<<ele1<<endl;
+    // }
+    // cout<<"--------"<<endl;
+    // for(auto &ele2 : exts){
+    //     cout<<ele2<<endl;
+    // }
+        // std::cout << entry.path() << std::endl;
+    
+    // exit(99);
 
     assert(pic_names.size()==exts.size());
 
@@ -1420,6 +1465,7 @@ int main(){
 
         cv::cvtColor(image,grayImage,cv::COLOR_BGR2GRAY);
 
+
         if(!image.data) {
             std::cout<< "No image"<<std::endl;
             return 0;
@@ -1440,6 +1486,7 @@ int main(){
 
         cv::Mat back_to_rgb_copy;
         cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
+        
         // cv::dilate(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
         // cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
         // show_image(dst);
@@ -1457,9 +1504,64 @@ int main(){
 
         //////// COVER FINDING AND ANALYSIS /////////
 
-        show_image(binaryImage);
+        // show_image(binaryImage);
+
+
+        INNER = 1;
+        GRID_SIZE = 3;
 
         vector<pair<vector<pair<int,int>>,vector<int>>> return_vec = cover_gen(binaryImage);
+
+        //////////////// Graphic Analysis Starts ////////////////
+
+        int n = 0;
+        for(auto &[cover_point_list, direction_vector]:return_vec){
+            n+=line_detection(back_to_rgb_copy, cover_point_list, direction_vector);
+        }
+
+        // show_image(back_to_rgb_copy);
+
+        double A = 0;
+        for(auto &[cover_points, dir_vec]: return_vec){
+            A+=polygon_area(cover_points); // Resolution dependent calculation
+        }
+
+        double P = 0;
+        for(auto &[cover_points, dir_vec]: return_vec){
+            P+=find_perimeter(cover_points); // Resolution dependent calculation
+        }
+
+        cout<<A/n<<" "<<P/n<<endl;
+        continue;
+
+        //////////////// Graphic Analysis Ends ////////////////
+
+        // for(auto &ele1 : return_value){
+        //     ele1.first.push_back(ele1.first[0]);
+        //     // cout<<"**********##########********"<<endl;
+        //     // for(auto &vals:ele1.first)
+        //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+        //     // cout<<"**********##########********"<<endl;
+        //     for(int i=1;i<ele1.first.size();i++){
+        //         int x1 = ele1.first[i].first;
+        //         int y1 = ele1.first[i].second;
+
+        //         int x2 = ele1.first[i-1].first;
+        //         int y2 = ele1.first[i-1].second;
+        //         cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+        //         // show_image(graphic_img_copy);
+        //     }
+        // }
+
+        // for(auto &[cover_point_list, direction_vector]: return_vec){
+
+        //     line_detection(back_to_rgb_copy, cover_point_list, direction_vector);
+
+        // }
+
+        // show_image(back_to_rgb_copy);
+
+        exit(-1);
         
         /*
 
@@ -1468,8 +1570,6 @@ int main(){
         */
         
         auto mapping = cover_mapping(return_vec, binaryImage_copy_copy);
-
-        exit(-1);
 
 
 

@@ -27,13 +27,13 @@ using namespace std;
 
 // #define INNER 0
 #define IMPROVED 1
-#define LINE_GEN_STRICTNESS 1
-#define CNT_LINE_AFTER 1
+#define LINE_GEN_STRICTNESS 0
+#define CNT_LINE_AFTER 2
 #define ERROR_TOLERANCE 110// in percent
 #define THRESHOLD 0.6
 // #define PRE_PROCESS 1
 
-int GRID_SIZE = 5;
+int GRID_SIZE = 1;
 int PRE_PROCESS = 0;
 int INNER = 0;
 int smaller_gs = 5;
@@ -274,8 +274,9 @@ bool analyse_shape_improved(vector<pair<int,int>> &cover_points){
 
 
 vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
-    cv::Mat binaryImage){
-
+    cv::Mat binaryImage_temp){
+    
+    cv::Mat binaryImage = binaryImage_temp.clone();
 
 
     cv::Mat binaryImage_copy = binaryImage.clone();
@@ -888,7 +889,7 @@ vector<pair<vector<pair<int,int>>,vector<int>>> cover_gen(
         }
     }
 
-    show_image(temp);
+    // show_image(temp);
 
 
     return return_value;
@@ -970,6 +971,7 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
         //     cout<<ele<<" ";
         // cout<<endl;
         // cout<<"((((((((())))))))"<<endl;
+        // continue;
 
         int m = ids[j].size();
 
@@ -999,8 +1001,19 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
         for(int i=1;i<m;i++){
             int cur_left = ids[j][i-1];
             int cur_right = ids[j][i];
-            if(cur_right-cur_left==1)
-                continue;
+            if(cur_right-cur_left==1){
+                //// Comment below and write continue for original implementation ////
+                int w = i;
+                while(ids[j][w]-ids[j][w-1]==1 and w<m){
+                    w++;
+                }
+                w--;
+                if (w-i+1>2)
+                line_list.push_back({ids[j][i],ids[j][w]});
+                // cout<<ids[j][i]<<" "<<ids[j][w]<<endl;
+                i = w;
+                //////////////////////////////////////////////////////////////////////
+            }
             else{
                 int lb = cur_left+1;
                 int rb = cur_right-1;
@@ -1016,8 +1029,7 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
                         break;
                     }
                 }
-
-                // cout<<"&&&&&& "<<dir_val_in_range<<" "<<no_of_dir_in_range<<endl;
+                
 
                 if(dir_val_in_range!=-1){
                     int w = i+1;
@@ -1075,7 +1087,20 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
 
     int cnt_color_lines = 0;
 
-    for(auto &[l,r]:line_list){
+    vector<pair<int,int>> improved_line_list;
+
+    
+    for(int i=0;i<new_line_list.size();i++){
+        if(i==0){
+            improved_line_list.push_back(new_line_list[i]);
+        }
+        else if(abs(new_line_list[i-1].second-new_line_list[i].first)>1){
+            improved_line_list.push_back({new_line_list[i-1].second, new_line_list[i].first});
+        }
+        improved_line_list.push_back(new_line_list[i]);
+    }
+
+    for(auto &[l,r]:improved_line_list){
         // cout<<"####### ==> "<<l<<" "<<r<<endl;
         /*
             Generate some color:
@@ -1092,10 +1117,12 @@ int line_detection(cv::Mat &back_to_rgb, vector<pair<int,int>> &cover_point_list
 
             int x2 = cover_point_list[i].first;
             int y2 = cover_point_list[i].second;
-            cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(b_, g_, r_)); 
+            cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(b_, g_, r_), 3); 
             // cv::line(back_to_rgb, cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255)); 
         }
     }
+
+    // show_image(back_to_rgb);
 
 
 
@@ -1263,13 +1290,13 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
 
             int x2 = ele.first[i-1].first;
             int y2 = ele.first[i-1].second;
-            cv::line(back_to_rgb_copy,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
+            cv::line(back_to_rgb_copy,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255), 3);
             // show_image(graphic_img_copy);
         }
 
     }
     
-    show_image(back_to_rgb_copy);
+    // show_image(back_to_rgb_copy);
 
     // for(int i=0;i<total_big_covers;i++){
     //     int choice_b = rand()%256;
@@ -1296,9 +1323,14 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
     int big_test_crop = 1;
 
     for(int i=0;i<total_big_covers;i++){
+
         int choice_b = rand()%256;
         int choice_g = rand()%256;
         int choice_r = rand()%256;
+
+        choice_b = 255;
+        choice_g = 0;
+        choice_r = 0;
 
         
 
@@ -1332,17 +1364,19 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
 
             // show_image(crop);
 
-            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r));
-            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r));
-            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r));
-            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r));
+            int thickness = 1;
+
+            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
 
             // cv::Mat crop_img(crop_region);
 
 
 
-            string out_name = "./word_test_imgs/" + to_string(big_test_crop) + "_" + to_string(word_test_crops)+".png";
-            cv::imwrite(out_name,crop);
+            // string out_name = "./word_test_imgs/" + to_string(big_test_crop) + "_" + to_string(word_test_crops)+".png";
+            // cv::imwrite(out_name,crop);
             
             word_test_crops++;
 
@@ -1353,9 +1387,9 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
     }
 
     ////////////////
-
-    show_image(back_to_rgb_copy);
-    string out_name = "./cover_identif_0002.png";
+    cout<<"****** here"<<endl;
+    // show_image(back_to_rgb_copy);
+    string out_name = "./cover_identif_0003.png";
     cv::imwrite(out_name,back_to_rgb_copy);
 
     // cout<<endl<<"hehehehhehehheh";
@@ -1365,6 +1399,107 @@ vector< vector<vector<pair<int,int>>> > cover_mapping(vector<pair<vector<pair<in
     return ans;
 
 }
+
+
+bool is_EO(cv::Mat &binaryImage){
+
+    // Ensure that the image is binary
+
+    int cur_GRID_SIZE = GRID_SIZE;
+    int cur_PRE_PROCESS = PRE_PROCESS;
+    int cur_INNER = INNER;
+    int cur_smaller_gs = smaller_gs;
+
+    GRID_SIZE = 2;
+    PRE_PROCESS = 0;
+    INNER = 1;
+    smaller_gs = 5;
+
+    cv::Mat copy_image = binaryImage.clone();
+
+    // show_image(binaryImage);
+
+    cv::Mat back_to_rgb_copy;
+    cv::cvtColor(copy_image,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
+
+    // show_image(binaryImage);
+
+
+
+    vector<pair<vector<pair<int,int>>,vector<int>>> return_vec = cover_gen(binaryImage);
+
+    // show_image(copy_image);
+
+    double A = 0;
+    for(auto &[cover_points, dir_vec]: return_vec){
+        A+=polygon_area(cover_points); // Resolution dependent calculation
+    }
+
+    int cur_rows = copy_image.rows;
+    int cur_cols = copy_image.cols;
+
+    // cout<<cur_rows<<" "<<cur_cols<<endl;
+
+    // exit(-1);
+
+    float area_ratio = A/(cur_cols*cur_rows);
+
+    // show_image(binaryImage);
+
+    cout<<area_ratio<<endl;
+    // exit(-1);
+
+
+    // int thickness = 2;
+
+    // int choice_b = 255;
+    // int choice_g = 0;
+    // int choice_r = 0;
+
+    // for(auto &ele1 : return_vec){
+    //     ele1.first.push_back(ele1.first[0]);
+        
+    //     int min_x = INT_MAX;
+    //     int max_x = INT_MIN;
+    //     int min_y = INT_MAX;
+    //     int max_y = INT_MIN;
+    //     for(int i=1;i<ele1.first.size();i++){
+
+
+    //         int x1 = ele1.first[i].first;
+    //         int y1 = ele1.first[i].second;
+
+    //         int x2 = ele1.first[i-1].first;
+    //         int y2 = ele1.first[i-1].second;
+
+
+    //         // min_x = min({min_x, y1, y2});
+    //         // max_x = max({max_x, y1, y2});
+
+    //         // min_y = min({min_y, x1, x2});
+    //         // max_y = max({max_y, x1, x2});
+    //         cv::line(back_to_rgb_copy,cv::Point(y2, x2), cv::Point(y1, x1), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+    //         // cv::line(back_to_rgb_copy,cv::Point(x1, y2), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+    //         // cv::line(back_to_rgb_copy,cv::Point(x2, y1), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+    //         // cv::line(back_to_rgb_copy,cv::Point(x2, y2), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            
+    //     }
+
+    // }
+
+    // show_image(back_to_rgb_copy);
+    // exit(-1);
+
+
+    GRID_SIZE = cur_GRID_SIZE;
+    PRE_PROCESS = cur_PRE_PROCESS;
+    INNER = cur_INNER;
+    smaller_gs = cur_smaller_gs;
+
+
+
+}
+
 
 int main(){
 
@@ -1390,13 +1525,23 @@ int main(){
     // vector<string> pic_names ={"0002","0003","0007","0008","0009","0012","0014","0016","doc_img1","doc_img2","doc_img5","doc_img9"};
     // vector<string> exts = {"jpg","jpg","jpg","jpg","jpg","jpg","jpg","jpg","png","png","png","png"};
 
-    vector<string> pic_names;
-    vector<string> exts;    
+    // vector<string> pic_names = {"./Images_for_project/hds", "./Images_for_project/egd2"};
+    // vector<string> exts = {"jpg","jpg"};    
 
-    string path = "./Images_for_project";
+    vector<string> pic_names;
+    vector<string> exts;   
+
+    string path = "primitive_test";
+    // string path = "Drawings/Architechtural_Plan";
+    
 
     for (const auto & entry : fs::directory_iterator(path)){
         string path_name = entry.path();
+        if(path_name.substr(path_name.length()-5)=="Store" || path_name.substr(path_name.length()-4)=="DS_S"){
+            cout<<path_name<<endl;
+            continue;
+
+        }
         pic_names.push_back(path_name.substr(0,path_name.length()-4));
         exts.push_back(path_name.substr(path_name.length()-3,3));
     }
@@ -1408,23 +1553,31 @@ int main(){
     // for(auto &ele2 : exts){
     //     cout<<ele2<<endl;
     // }
+    // exit(-1);
         // std::cout << entry.path() << std::endl;
     
     // exit(99);
 
     assert(pic_names.size()==exts.size());
 
+    float avg = 0;
+
     for(int i=0;i<pic_names.size();i++){
 
-        cout<<"NOW PROCESSING=====> "<<i<<endl;
+        // if(pic_names[i]!="./Images_for_project/hds4")
+        //     continue;
+
+        cout<<"NOW PROCESSING=====> "<<i<<" "<<pic_names[i]<<endl;
 
         string pic_name = pic_names[i];
         string ext = exts[i];
         std::string test_pic = "./"+ pic_name+"."+ext;
         // std::string yinyangGrayPath = "./test_pic_gray.jpeg";
-
+        cout<<test_pic<<endl;
         cv::Mat image = cv::imread(test_pic);
         cv::Mat grayImage, binaryImage;
+
+        show_image(image);
 
         int border = 220;
 
@@ -1477,8 +1630,8 @@ int main(){
 
 
         // show_image(grayImage);
-        cv::threshold(grayImage,binaryImage,200,255,cv::THRESH_BINARY);//40
-        // show_image(binaryImage);
+        cv::threshold(grayImage,binaryImage,170,255,cv::THRESH_BINARY);//40
+        
 
         cv::Mat binaryImage_copy_copy = binaryImage.clone();
 
@@ -1486,6 +1639,14 @@ int main(){
 
         cv::Mat back_to_rgb_copy;
         cv::cvtColor(binaryImage_copy_copy,back_to_rgb_copy,cv::COLOR_GRAY2BGR);
+
+        // is_EO(binaryImage);
+
+        show_image(binaryImage);
+
+        // continue;
+
+
         
         // cv::dilate(binaryImage_copy,dst,elementKernel2,cv::Point(-1,-1),1);
         // cv::erode(dst,dst,elementKernel2,cv::Point(-1,-1),1);
@@ -1507,8 +1668,46 @@ int main(){
         // show_image(binaryImage);
 
 
-        INNER = 1;
-        GRID_SIZE = 3;
+        // INNER = 1;
+        // GRID_SIZE = 3;
+
+        // cv::Mat elementKernel1 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3),cv::Point(-1,-1));
+
+        // cv::Mat elementKernel2 = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(4,4),cv::Point(-1,-1));
+
+        // show_image(binaryImage);
+
+        // cv::Mat bwn;
+
+        // vector<vector<cv::Point>> contours;
+        // cv::Mat contourOutput = binaryImage.clone();
+        // cv::findContours(contourOutput, contours, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE );
+
+        
+
+        // bitwise_not(binaryImage, bwn);
+
+        // cv::Mat contourImage(binaryImage.size(), CV_8UC3, cv::Scalar(0,0,0));
+
+        // cv::Scalar colors[3];
+        // colors[0] = cv::Scalar(255, 255, 255);
+        // // colors[1] = cv::Scalar(0, 255, 0);
+        // // colors[2] = cv::Scalar(0, 0, 255);
+        // for (size_t idx = 0; idx < contours.size(); idx++) {
+        //     cv::drawContours(contourImage, contours, idx, colors[0]);
+        // }
+        
+        // // cv::dilate(binaryImage,binaryImage,elementKernel1,cv::Point(-1,-1),1);
+
+        // // cv::erode(binaryImage,binaryImage,elementKernel2,cv::Point(-1,-1),1);
+
+        // bitwise_not(binaryImage, bwn);
+
+        // show_image(bwn);
+        // show_image(contourImage);
+        // show_image(binaryImage);
+
+        // show_image(binaryImage);
 
         vector<pair<vector<pair<int,int>>,vector<int>>> return_vec = cover_gen(binaryImage);
 
@@ -1519,7 +1718,7 @@ int main(){
             n+=line_detection(back_to_rgb_copy, cover_point_list, direction_vector);
         }
 
-        // show_image(back_to_rgb_copy);
+        show_image(back_to_rgb_copy);
 
         double A = 0;
         for(auto &[cover_points, dir_vec]: return_vec){
@@ -1531,37 +1730,75 @@ int main(){
             P+=find_perimeter(cover_points); // Resolution dependent calculation
         }
 
+        avg += (P/n);
+
         cout<<A/n<<" "<<P/n<<endl;
         continue;
 
         //////////////// Graphic Analysis Ends ////////////////
 
-        // for(auto &ele1 : return_value){
-        //     ele1.first.push_back(ele1.first[0]);
-        //     // cout<<"**********##########********"<<endl;
-        //     // for(auto &vals:ele1.first)
-        //     //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
-        //     // cout<<"**********##########********"<<endl;
-        //     for(int i=1;i<ele1.first.size();i++){
-        //         int x1 = ele1.first[i].first;
-        //         int y1 = ele1.first[i].second;
+        for(auto &ele1 : return_vec){
+            ele1.first.push_back(ele1.first[0]);
+            // cout<<"**********##########********"<<endl;
+            // for(auto &vals:ele1.first)
+            //     cout<<"====>>> ["<<vals.first<<" "<<vals.second<<"]"<<endl;
+            // cout<<"**********##########********"<<endl;
+            int min_x = INT_MAX;
+            int max_x = INT_MIN;
+            int min_y = INT_MAX;
+            int max_y = INT_MIN;
+            for(int i=1;i<ele1.first.size();i++){
 
-        //         int x2 = ele1.first[i-1].first;
-        //         int y2 = ele1.first[i-1].second;
-        //         cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(255, 0, 0));
-        //         // show_image(graphic_img_copy);
-        //     }
-        // }
 
-        // for(auto &[cover_point_list, direction_vector]: return_vec){
+                int x1 = ele1.first[i].first;
+                int y1 = ele1.first[i].second;
 
-        //     line_detection(back_to_rgb_copy, cover_point_list, direction_vector);
+                int x2 = ele1.first[i-1].first;
+                int y2 = ele1.first[i-1].second;
 
-        // }
+
+                min_x = min({min_x, y1, y2});
+                max_x = max({max_x, y1, y2});
+
+                min_y = min({min_y, x1, x2});
+                max_y = max({max_y, x1, x2});
+
+                // cv::line(temp,cv::Point(y1, x1), cv::Point(y2, x2), cv::Scalar(0, 0, 255),2);
+                // show_image(graphic_img_copy);
+            }
+
+            int thickness = 2;
+
+            int choice_b = 255;
+            int choice_g = 0;
+            int choice_r = 0;
+
+            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(min_x, min_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(min_x, max_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+            cv::line(back_to_rgb_copy,cv::Point(max_x, max_y), cv::Point(max_x, min_y), cv::Scalar(choice_b, choice_g, choice_r), thickness);
+
+
+
+        }
+        // show_image(back)
+        // show_image(back_to_rgb_copy);
+        // exit(-1);
+
+        for(auto &[cover_point_list, direction_vector]: return_vec){
+
+            line_detection(back_to_rgb_copy, cover_point_list, direction_vector);
+
+        }
 
         // show_image(back_to_rgb_copy);
 
-        exit(-1);
+        string oow = pic_name + "_line_detection_output"+"."+ext;
+        cv::imwrite(oow,back_to_rgb_copy);
+
+        continue;
+
+        
         
         /*
 
@@ -1570,8 +1807,6 @@ int main(){
         */
         
         auto mapping = cover_mapping(return_vec, binaryImage_copy_copy);
-
-
 
             
         int graphic_area_cnt = 0;
@@ -1588,12 +1823,13 @@ int main(){
             cout<<"Save Unsuccessful."<<endl;
             exit(0);
         }
-    }    
+    }  
 
     
 
     /////////////////////////////////////////////
 
+    cout<<"******** AVG ********* "<<avg/(pic_names.size())<<endl;
 
 	auto stop1 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop1-start1);
